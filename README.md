@@ -1,4 +1,13 @@
+[![.NET Tests](https://github.com/marklauter/result/actions/workflows/dotnet.tests.yml/badge.svg)](https://github.com/marklauter/result/actions/workflows/dotnet.tests.yml)
+[![.NET Publish](https://github.com/marklauter/result/actions/workflows/dotnet.publish.yml/badge.svg)](https://github.com/marklauter/result/actions/workflows/dotnet.publish.yml)
+[![NuGet](https://img.shields.io/nuget/v/MSL.Results?logo=nuget)](https://www.nuget.org/packages/MSL.Results/)
+[![.NET](https://img.shields.io/badge/.NET-10.0-blue)](https://dotnet.microsoft.com/en-us/download/dotnet/10.0/)
+
+![MSL Armory](https://raw.githubusercontent.com/marklauter/result/main/images/msl.armory.small.png "MSL Armory")
+
 # Results
+
+*Another weapon from the MSL Armory*
 
 A `Result<T>` type for .NET that models domain failure as a value instead of an exception.
 
@@ -112,6 +121,5 @@ Construction goes through the factories, which reject a null, empty, or whitespa
 
 A `Failure` always carries at least one error: the factories enforce it, and the inhabitant's constructor is internal, so there's no way around them. `Failure` equality is structural over the errors, element-wise and order-sensitive.
 
-## License
-
-MIT. See [LICENSE](LICENSE).
+---
+[Repository](https://github.com/marklauter/result) · [NuGet](https://www.nuget.org/packages/MSL.Results/) · [MIT License](https://github.com/marklauter/result/blob/main/LICENSE) · [Report an issue](https://github.com/marklauter/result/issues)
