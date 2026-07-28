@@ -1,0 +1,64 @@
+<Project>
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<LangVersion>14</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<AnalysisMode>All</AnalysisMode>
+		<AnalysisLevel>latest-all</AnalysisLevel>
+		<IncludeSymbols>true</IncludeSymbols>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+		<!-- Reproducible builds + normalized SourceLink paths in packed binaries. On only in CI. -->
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+	</PropertyGroup>
+
+
+	<!-- Universal InternalsVisibleTo: every non-test project grants internals to its <ProjectName>.Tests sibling. -->
+	<ItemGroup Condition="!$(MSBuildProjectName.EndsWith('.Tests'))">
+		<InternalsVisibleTo Include="$(MSBuildProjectName).Tests" />
+	</ItemGroup>
+
+	<PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+		<CollectCoverage>true</CollectCoverage>
+		<CoverletOutputFormat>cobertura</CoverletOutputFormat>
+		<!-- Coverage floor (per-class minimum: every class must clear it, not the assembly average). Verified by the gate in .github/workflows/dotnet.tests.yml: dotnet format (verify-no-changes), then dotnet build and dotnet test in Debug and Release. -->
+		<Threshold>95,95,95</Threshold>
+		<ThresholdType>line,branch,method</ThresholdType>
+		<ThresholdStat>minimum</ThresholdStat>
+		<!-- Exception types are plumbing; exclude from coverage to avoid noise. -->
+		<!-- Architecture.Testing is test infrastructure, not shipped code: it carries base rules this repo's derived tests may not all exercise, so measuring it would set the floor from the test harness rather than the package. -->
+		<Exclude>[*]*Exception,[Architecture.Testing]*</Exclude>
+		<!-- Source-generated files (e.g. [LoggerMessage] partials) are plumbing too. -->
+		<ExcludeByFile>**/obj/**/*.g.cs</ExcludeByFile>
+		<!-- CA1707 underscores-in-names : test methods use Method_Scenario_Outcome. -->
+		<!-- CA1515 make-public-types-internal : xUnit requires public test classes. -->
+		<!-- CA1812 uninstantiated-internal-class : fixtures and middleware are activated reflectively; the analyzer cannot see construction. -->
+		<!-- IDE1006 naming-rule : test method names (underscores, missing Async suffix) are intentional. -->
+		<!-- IDE0079 unnecessary-suppression : keeps inline IDISP/analyzer suppressions in test code from being flagged. -->
+		<NoWarn>$(NoWarn);CA1707;CA1515;CA1812;IDE1006;IDE0079</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+		<PackageReference Include="coverlet.msbuild">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="xunit.v3" />
+		<PackageReference Include="xunit.runner.visualstudio">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<Using Include="Xunit" />
+	</ItemGroup>
+
+</Project>

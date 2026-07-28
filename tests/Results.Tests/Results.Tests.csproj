@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+		<PackageReference Include="TngTech.ArchUnitNET" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Architecture.Testing\Architecture.Testing.csproj" />
+		<ProjectReference Include="..\..\src\Results\Results.csproj" />
+	</ItemGroup>
+
+</Project>

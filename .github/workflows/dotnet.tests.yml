@@ -1,0 +1,53 @@
+name: .NET Tests
+
+on:
+  push:
+    branches: [ "main" ]
+    paths: [ "src/**", "tests/**", "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props", ".editorconfig", ".gitattributes", "global.json", ".github/workflows/dotnet.tests.yml", ".github/actions/setup-dotnet/action.yml" ]
+  pull_request:
+    branches: [ "main" ]
+    paths: [ "src/**", "tests/**", "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props", ".editorconfig", ".gitattributes", "global.json", ".github/workflows/dotnet.tests.yml", ".github/actions/setup-dotnet/action.yml" ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - uses: ./.github/actions/setup-dotnet
+
+    - name: Verify formatting
+      run: dotnet format "Results.slnx" --severity info --verify-no-changes
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        configuration: [ Debug, Release ]
+    steps:
+    - uses: actions/checkout@v7
+    - uses: ./.github/actions/setup-dotnet
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build -c ${{ matrix.configuration }} --no-restore
+
+    - name: Test
+      run: dotnet test -c ${{ matrix.configuration }} --no-build
+
+    - name: Upload coverage report
+      if: always() && matrix.configuration == 'Debug'
+      uses: actions/upload-artifact@v7
+      with:
+        name: coverage-cobertura
+        path: |
+          tests/Results.Tests/coverage.cobertura.xml
+        if-no-files-found: error
