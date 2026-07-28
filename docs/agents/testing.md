@@ -8,7 +8,7 @@
 
 **Tests are documentation.** A test name describes the scenario and the guaranteed outcome, in `Method_Scenario_Outcome` form (e.g. `Failure_ParamsFactory_EmptyArray_Throws`). `IDE1006` and `CA1707` are suppressed in test projects so underscored, descriptive names are fine.
 
-**Laws are tests.** `ResultLawTests` covers the functor and monad laws (identity, composition, left and right identity, associativity). A change to `Map` or `Bind` that passes the behavioral tests but breaks a law is still a regression.
+**Laws are part of the contract.** `ResultLawTests` covers the functor and monad laws: identity, composition, left and right identity, associativity. A change to `Map` or `Bind` that passes the behavioral tests but breaks a law is a regression.
 
 ## Setup
 
@@ -18,7 +18,7 @@ Any project named `*.Tests` is auto-configured by [`Directory.Build.props`](../.
 
 ## Coverage
 
-The ratchet is 100% line, branch, and method as a **per-class minimum**. New code arrives with tests or the build goes red. Never lower `Threshold` to make a build pass; if a branch is genuinely unreachable, restructure the code so it isn't emitted (see the `Apply` truth-table note in `architecture.md`).
+The ratchet is 100% line, branch, and method as a **per-class minimum**. New code arrives with tests or the build goes red. Never lower `Threshold` to make a build pass. If a branch is unreachable, restructure the code so the compiler stops emitting it — see the `Apply` truth-table note in `architecture.md`.
 
 ## Conventions
 

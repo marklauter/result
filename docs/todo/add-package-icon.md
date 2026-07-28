@@ -21,10 +21,10 @@ path 'D:\projects\result\result\images'.
 That means `dotnet.publish.yml` reds on the first release, at the pack step,
 before it ever reaches the nuget.org push.
 
-Drop the artwork at `images/result.png` (pool and plumber both keep a
-`<repo>.png`, a `<repo>.svg`, and the shared `msl.armory.small.png` in
-`images/`), then re-run `dotnet pack -c Release` to confirm.
+Drop the artwork at `images/result.png`, then re-run `dotnet pack -c Release` to
+confirm. pool and plumber each keep three files in `images/`: a `<repo>.png`, a
+`<repo>.svg`, and the shared `msl.armory.small.png`.
 
-Both reference READMEs also embed their artwork by raw GitHub URL —
-`https://raw.githubusercontent.com/marklauter/result/main/images/result.png` —
-so wire that into `README.md` alongside the MSL Armory mark once the files land.
+Both reference READMEs embed their artwork by raw GitHub URL, in this repo's case
+`https://raw.githubusercontent.com/marklauter/result/main/images/result.png`.
+Wire that into `README.md` alongside the MSL Armory mark once the files land.

@@ -8,8 +8,8 @@ effort: low
 status: open
 ---
 
-Carried from plumber, which has the same open todo. result was scaffolded with
-the same gap.
+Carried from plumber, which was scaffolded from the same template and has this
+todo open too.
 
 Update `global.json` to pin the .NET SDK to `10.0.204` and set `rollForward` to
 `disable` rather than keeping `latestFeature`.
@@ -43,4 +43,4 @@ the intended fail-loud behavior, not a regression.
 Confirm the `Directory.Build.props` `TargetFramework` (`net10.0`) still aligns
 after the bump, then run `dotnet build -c Release` and `dotnet test` to verify.
 
-Coordinate with plumber so both repos move together, or neither does.
+Coordinate with plumber so both repos move in the same change.

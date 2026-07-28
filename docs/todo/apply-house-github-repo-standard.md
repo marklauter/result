@@ -37,7 +37,7 @@ approval, no review-thread resolution, all three merge methods;
   `tests/Results.Tests/coverage.cobertura.xml`.
 - `dotnet.publish.yml` — packs `Results.slnx` on release and pushes to
   nuget.org. The version comes from the release tag (`v1.2.3` →
-  `-p:PackageVersion=1.2.3`), so nothing version-related belongs in the repo;
+  `-p:PackageVersion=1.2.3`), so nothing version-related belongs in the repo.
   `workflow_dispatch` gives a pack-and-upload dry run with no push.
 - `codeql.yml` — committed advanced setup, not GitHub's API default setup.
   Both `actions` and `csharp` use `build-mode: none`.
@@ -62,8 +62,8 @@ CRLF for `.cmd`/`.bat`). The tests workflow path filter references it.
 an empty list, so the publish job will fail at the push step on the first
 release. Add it before tagging.
 
-See also [add-package-icon.md](add-package-icon.md), which currently breaks
-`dotnet pack` outright.
+See also [add-package-icon.md](add-package-icon.md), which breaks `dotnet pack`
+before the publish job reaches that step.
 
 ## Deferred
 
