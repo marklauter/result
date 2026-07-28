@@ -2,21 +2,23 @@
 
 A `Result<T>` type for .NET that models domain failure as a value instead of an exception.
 
-```
+```bash
 dotnet add package MSL.Results
 ```
+
+Results targets .NET 10.
 
 ## Why
 
 An operation that can fail in a way your domain cares about — input that doesn't parse, a withdrawal that exceeds the balance, a lookup that finds nothing — isn't exceptional. It's an outcome. Return it.
 
-`Result<T>` is a closed hierarchy: `Success` and `Failure` are its only inhabitants, and the base constructor is `private protected`, so nothing outside the assembly can join them. The combinators are abstract on the base and implemented on each inhabitant, which makes exhaustiveness a compile-time fact. Add an inhabitant and the code stops compiling, where a `switch` expression would only warn.
+`Result<T>` is a closed hierarchy: `Success` and `Failure` are its only inhabitants, and the base constructor is `private protected`, so nothing outside the assembly can join them. The combinators are abstract on the base and implemented on each inhabitant, which makes exhaustiveness a compile-time fact. Add an inhabitant and the code stops compiling, whereas a `switch` expression would only warn.
 
 Exceptions still have a job. Keep them for the substrate failing or the code being wrong — a dropped connection, a missing connection string, a null argument from a caller you don't control.
 
 ## Compose the happy path
 
-`Map` transforms a success and passes a failure through. `Bind` chains another fallible step and short-circuits. `Match` is how you leave the type: `Result<T>` exposes no value of its own, so you handle both paths or you don't get one.
+`Map` transforms a success and passes a failure through. `Bind` chains another fallible step and short-circuits. `Match` is how you leave the type: `Result<T>` exposes no value of its own, so both paths get handled on the way out.
 
 ```csharp
 Result<Order> order = ParseOrderId(input)
@@ -49,7 +51,7 @@ Result<Receipt> receipt = await ParseOrderId(input)
 
 ## Accumulate every error
 
-`Bind` is sequential: it reports the first failure and stops. When the failures are independent, you usually want all of them. That's what `Apply` and `Sequence` are for.
+`Bind` is sequential: it reports the first failure and stops. When the failures are independent, you want all of them. `Apply` and `Sequence` collect them.
 
 Lift each check with `Validate`, then combine:
 
@@ -68,7 +70,7 @@ All three violations come back together, in input order.
 Result<ImmutableArray<Sku>> skus = lines.Select(Sku.Parse).Sequence();
 ```
 
-The curried `Apply` overload feeds a wrapped argument to a wrapped function, so you can build a value from several independent parses and still collect every error:
+The two-argument `Apply` feeds a wrapped argument to a wrapped function. Curry the constructor and apply once per argument, so a value built from several independent parses still collects every error:
 
 ```csharp
 Result<Address> address = Result.Apply(
@@ -80,7 +82,7 @@ Result<Address> address = Result.Apply(
 
 ## Errors
 
-`Error` is a readonly record struct carrying a typed category, a stable machine-readable code, and a human-readable message. The category is what your caller branches on — map it to a status code at the boundary and leave the core transport-agnostic.
+`Error` is a readonly record struct carrying a typed category (`Type`), a stable machine-readable code, and a human-readable message. The category is what your caller branches on — map it to a status code at the boundary and leave the core transport-agnostic.
 
 ```csharp
 Error.Validation("order.qty_invalid", "Quantity must be positive.");
@@ -106,7 +108,7 @@ Construction goes through the factories, which reject a null, empty, or whitespa
 | `Bind` / `SelectMany` | Chains a fallible step. Short-circuits. |
 | `BindAsync`, `MapAsync`, `MatchAsync` | Carry a chain through `ValueTask<Result<T>>`. |
 | `Match` | Folds both paths to a value. |
-| `Sequence()` | Turns `IEnumerable<Result<T>>` into `Result<ImmutableArray<T>>`. |
+| `Sequence` | Turns `IEnumerable<Result<T>>` into `Result<ImmutableArray<T>>`. |
 
 A `Failure` always carries at least one error: the factories enforce it, and the inhabitant's constructor is internal, so there's no way around them. `Failure` equality is structural over the errors, element-wise and order-sensitive.
 

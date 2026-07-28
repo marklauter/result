@@ -41,6 +41,7 @@ carries `10.0.204`. If it doesn't, either the workflow must add an explicit
 the intended fail-loud behavior, not a regression.
 
 Confirm the `Directory.Build.props` `TargetFramework` (`net10.0`) still aligns
-after the bump, then run `dotnet build -c Release` and `dotnet test` to verify.
+after the bump, then run the gate: `dotnet format "Results.slnx" --severity info
+--verify-no-changes`, `dotnet build -c Release`, and `dotnet test -c Release`.
 
 Coordinate with plumber so both repos move in the same change.
