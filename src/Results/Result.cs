@@ -213,7 +213,7 @@ public static class Result
             // fourth row of the truth table, (Failure f, Failure a) => Failure([.. f.Errors, .. a.Errors]),
             // written as a discard: a final type-pattern would make the compiler synthesize unreachable
             // type-test/default branches under the switch, which coverlet counts and the branch-coverage
-            // ratchet then fails.
+            // threshold then fails.
             _ => new Result<TResult>.Failure(
                 [.. ((Result<Func<T, TResult>>.Failure)resultFn).Errors, .. ((Result<T>.Failure)resultArg).Errors]),
         };
