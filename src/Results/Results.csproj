@@ -1,0 +1,41 @@
+<Project>
+
+	<Sdk Name="Microsoft.NET.Sdk" />
+
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<PackageId>MSL.$(AssemblyName)</PackageId>
+		<Title>Results — a Result type for dotnet with applicative error accumulation</Title>
+		<Authors>Mark Lauter</Authors>
+		<Description>A closed Result&lt;T&gt; hierarchy for modeling domain failure as a value instead of an exception. Success and Failure are its only inhabitants, so exhaustiveness is a compile-time fact rather than a runtime switch. Map, Bind, and Match compose the happy path; BindAsync carries a chain into ValueTask; Apply and Sequence accumulate every error across independent checks instead of stopping at the first. Errors are typed and carry a machine-readable code alongside a human-readable message.</Description>
+		<Copyright>Copyright (c) 2026 Mark Lauter</Copyright>
+		<PackageProjectUrl>https://github.com/marklauter/result</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/marklauter/result</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageTags>result;result-type;either;railway-oriented;functional;error-handling;applicative;validation;discriminated-union;monad;domain-modeling;ddd;dotnet;msl-armory</PackageTags>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseFile>LICENSE</PackageLicenseFile>
+		<!-- No PackageIcon yet: this repo has no images/ artwork. Add it alongside the icon file. -->
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>README.md</PackagePath>
+		</None>
+		<None Include="..\..\LICENSE">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.SourceLink.GitHub">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+</Project>

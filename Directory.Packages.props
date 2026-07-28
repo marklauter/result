@@ -1,0 +1,35 @@
+<Project>
+
+	<!-- TODO: migrate test stack from VSTest to Microsoft Testing Platform (MTP2) -->
+
+	<PropertyGroup>
+		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+		<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- SourceLink (package scaffold only) -->
+		<PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.300" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Test + architecture-test stack (VSTest: Microsoft.NET.Test.Sdk + xunit.runner.visualstudio + coverlet) -->
+		<PackageVersion Include="coverlet.collector" Version="10.0.1" />
+		<PackageVersion Include="coverlet.msbuild" Version="10.0.1" />
+		<PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.7.0" />
+		<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
+		<PackageVersion Include="xunit.v3" Version="3.2.2" />
+		<!-- Granular xunit.v3 libs for the shared arch-test base (a class library, not an executable test project) -->
+		<PackageVersion Include="xunit.v3.extensibility.core" Version="3.2.2" />
+		<PackageVersion Include="xunit.v3.assert" Version="3.2.2" />
+		<PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+		<PackageVersion Include="TngTech.ArchUnitNET" Version="0.13.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Mandatory analyzer, all projects, all types: IDisposable correctness. -->
+		<GlobalPackageReference Include="IDisposableAnalyzers" Version="4.0.8" />
+	</ItemGroup>
+
+
+</Project>
