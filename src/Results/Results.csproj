@@ -17,10 +17,14 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
-		<!-- No PackageIcon yet: this repo has no images/ artwork. Add it alongside the icon file. -->
+		<PackageIcon>result.png</PackageIcon>
 	</PropertyGroup>
 
 	<ItemGroup>
+		<None Include="..\..\images\result.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
 		<None Include="..\..\README.md">
 			<Pack>True</Pack>
 			<PackagePath>README.md</PackagePath>
