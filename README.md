@@ -3,6 +3,7 @@
 [![NuGet](https://img.shields.io/nuget/v/MSL.Results?logo=nuget)](https://www.nuget.org/packages/MSL.Results/)
 [![.NET](https://img.shields.io/badge/.NET-10.0-blue)](https://dotnet.microsoft.com/en-us/download/dotnet/10.0/)
 
+![Results](https://raw.githubusercontent.com/marklauter/result/main/images/results-logo.png "Results")
 ![MSL Armory](https://raw.githubusercontent.com/marklauter/result/main/images/msl.armory.small.png "MSL Armory")
 
 # Results
@@ -23,7 +24,9 @@ An operation that can fail in a way your domain cares about — input that doesn
 
 `Result<T>` is a closed hierarchy: `Success` and `Failure` are its only inhabitants, and the base constructor is `private protected`, so nothing outside the assembly can join them. The combinators are abstract on the base and implemented on each inhabitant, which makes exhaustiveness a compile-time fact. Add an inhabitant and the code stops compiling, whereas a `switch` expression would only warn.
 
-Exceptions still have a job. Keep them for the substrate failing or the code being wrong — a dropped connection, a missing connection string, a null argument from a caller you don't control.
+Exceptions still have a job. Keep them for the substrate failing or the code being wrong: a dropped connection, a missing connection string, a null argument from a caller you don't control.
+
+The test is what a correct caller has to do. If every caller must handle the failure to behave correctly, it belongs in the return type. If handling it means the process is already in trouble, throw.
 
 ## Compose the happy path
 
