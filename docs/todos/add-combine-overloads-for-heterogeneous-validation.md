@@ -19,9 +19,9 @@ Result.Apply(Result.Apply(Result.Apply(Result.Apply(
 ```
 
 with a matching `Func<A, Func<B, Func<C, Func<D, Customer>>>>` declared by hand
-at the call site. That is the DDD case this library exists for — several
-independent checks, every violation reported — and it is currently the hardest
-thing in the API to express.
+at the call site. That is the DDD case this library exists for: several
+independent checks, every violation reported. It is currently the hardest thing
+in the API to express.
 
 The existing accumulating entry points do not cover it.
 `ResultSequence.Sequence` takes `Result<T>` of one `T`, so it handles a
@@ -46,9 +46,9 @@ documents (function errors before argument errors) and the order `Sequence`
 uses. Whether to also offer tuple-returning overloads without a selector is
 open; a selector-only surface is smaller and reads better at the call site.
 
-Generating the arities rather than hand-writing eight near-identical methods is
-worth considering, but hand-written is acceptable if each carries its own doc
-comment — the analyzer settings require them on the packed assembly.
+The near-identical arities can be generated or written by hand. Hand-written is
+acceptable if each carries its own doc comment, which the analyzer settings
+require on the packed assembly.
 
 ## Tests
 
