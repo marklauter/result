@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace Results;
 
@@ -15,26 +16,33 @@ namespace Results;
 /// <see cref="Result{T}.Success"/> and <see cref="Result{T}.Failure"/> are its only inhabitants. Dispatch is virtual, so each inhabitant implements the
 /// combinators and exhaustiveness is a compile-time fact rather than a runtime switch.
 /// </summary>
-/// <typeparam name="T">The success value type.</typeparam>
+/// <typeparam name="T">The success value type. Constrained <c>notnull</c>: a success carrying <see langword="null"/> is the failure mode the type exists to remove, so it is unrepresentable.</typeparam>
 [SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "Discriminated-union shape: Success and Failure are inhabitants of Result<T>; nesting names the relationship in the type itself.")]
 public abstract record Result<T>
+    where T : notnull
 {
     private protected Result() { }
 
-    /// <summary>The successful inhabitant of <see cref="Result{T}"/>.</summary>
-    public sealed record Success(T Value) : Result<T>
+    /// <summary>
+    /// The successful inhabitant of <see cref="Result{T}"/>. Equality is the record-synthesized comparison over <see cref="Value"/>, so it delegates to
+    /// <c>EqualityComparer&lt;T&gt;.Default</c>: two successes are equal exactly when their payloads are, and a payload without value semantics — an array, a
+    /// <see cref="List{T}"/>, an <see cref="ImmutableArray{T}"/> — compares by reference here just as it does anywhere else. The payload's owner defines its
+    /// equality; <see cref="Failure"/> hand-writes its own only because its payload is library-owned.
+    /// </summary>
+    public sealed record Success(T Value)
+        : Result<T>
     {
         /// <inheritdoc/>
-        public override TResult Match<TResult>(Func<T, TResult> onSuccess, Func<ImmutableArray<Error>, TResult> onError) => onSuccess(Value);
+        private protected override TResult MatchCore<TResult>(Func<T, TResult> onSuccess, Func<ImmutableArray<Error>, TResult> onError) => onSuccess(Value);
 
         /// <inheritdoc/>
-        public override Result<TResult> Map<TResult>(Func<T, TResult> fn) => new Result<TResult>.Success(fn(Value));
+        private protected override Result<TResult> MapCore<TResult>(Func<T, TResult> fn) => new Result<TResult>.Success(fn(Value));
 
         /// <inheritdoc/>
-        public override Result<TResult> Bind<TResult>(Func<T, Result<TResult>> fn) => fn(Value);
+        private protected override Result<TResult> BindCore<TResult>(Func<T, Result<TResult>> fn) => fn(Value);
 
         /// <inheritdoc/>
-        public override ValueTask<Result<TResult>> BindAsync<TResult>(Func<T, ValueTask<Result<TResult>>> fn) => fn(Value);
+        private protected override ValueTask<Result<TResult>> BindAsyncCore<TResult>(Func<T, ValueTask<Result<TResult>>> fn) => fn(Value);
     }
 
     /// <summary>
@@ -42,7 +50,8 @@ public abstract record Result<T>
     /// through the <c>Result.Failure</c> factories that enforce it. Equality is structural over <see cref="Errors"/> (element-wise, order-sensitive), because
     /// <see cref="ImmutableArray{T}"/>'s default record equality would compare the underlying array reference instead.
     /// </summary>
-    public sealed record Failure : Result<T>
+    public sealed record Failure
+        : Result<T>
     {
         /// <summary>The errors carried by this failure; never empty.</summary>
         public ImmutableArray<Error> Errors { get; }
@@ -50,16 +59,16 @@ public abstract record Result<T>
         internal Failure(ImmutableArray<Error> errors) => Errors = errors;
 
         /// <inheritdoc/>
-        public override TResult Match<TResult>(Func<T, TResult> onSuccess, Func<ImmutableArray<Error>, TResult> onError) => onError(Errors);
+        private protected override TResult MatchCore<TResult>(Func<T, TResult> onSuccess, Func<ImmutableArray<Error>, TResult> onError) => onError(Errors);
 
         /// <inheritdoc/>
-        public override Result<TResult> Map<TResult>(Func<T, TResult> fn) => new Result<TResult>.Failure(Errors);
+        private protected override Result<TResult> MapCore<TResult>(Func<T, TResult> fn) => new Result<TResult>.Failure(Errors);
 
         /// <inheritdoc/>
-        public override Result<TResult> Bind<TResult>(Func<T, Result<TResult>> fn) => new Result<TResult>.Failure(Errors);
+        private protected override Result<TResult> BindCore<TResult>(Func<T, Result<TResult>> fn) => new Result<TResult>.Failure(Errors);
 
         /// <inheritdoc/>
-        public override ValueTask<Result<TResult>> BindAsync<TResult>(Func<T, ValueTask<Result<TResult>>> fn) => ValueTask.FromResult<Result<TResult>>(new Result<TResult>.Failure(Errors));
+        private protected override ValueTask<Result<TResult>> BindAsyncCore<TResult>(Func<T, ValueTask<Result<TResult>>> fn) => ValueTask.FromResult<Result<TResult>>(new Result<TResult>.Failure(Errors));
 
         /// <summary>
         /// Structural equality over <see cref="Errors"/>, element-wise and order-sensitive. Replaces the record-synthesized comparison, which would compare
@@ -69,6 +78,27 @@ public abstract record Result<T>
         /// <returns><see langword="true"/> when <paramref name="other"/> carries the same errors in the same order; otherwise <see langword="false"/>.</returns>
         public bool Equals(Failure? other) =>
             other is not null && Errors.AsSpan().SequenceEqual(other.Errors.AsSpan());
+
+        /// <summary>
+        /// Renders <see cref="Errors"/> element-wise, each via <see cref="Error"/>'s own record formatting. Replaces the synthesized member printing, which
+        /// would format <see cref="ImmutableArray{T}"/> through <c>ValueType.ToString()</c> — the type name, with every code and message absent from the
+        /// log line.
+        /// </summary>
+        /// <param name="builder">The builder receiving the rendered members.</param>
+        /// <returns><see langword="true"/>: <see cref="Errors"/> is never empty, so there is always a member to print.</returns>
+        protected override bool PrintMembers(StringBuilder builder)
+        {
+            _ = builder.Append("Errors = [");
+            for (var i = 0; i < Errors.Length; i++)
+            {
+                if (i > 0)
+                    _ = builder.Append(", ");
+                _ = builder.Append(Errors[i].ToString());
+            }
+
+            _ = builder.Append(']');
+            return true;
+        }
 
         /// <summary>Hash code combining <see cref="Errors"/> element-wise, consistent with <see cref="Equals(Failure)"/>.</summary>
         /// <returns>The combined hash code.</returns>
@@ -83,39 +113,100 @@ public abstract record Result<T>
 
     /// <summary>Pattern-matches the result and produces a value on either path.</summary>
     /// <returns>The value returned by <paramref name="onSuccess"/> for a success, or by <paramref name="onError"/> for a failure.</returns>
-    public abstract TResult Match<TResult>(Func<T, TResult> onSuccess, Func<ImmutableArray<Error>, TResult> onError);
+    /// <exception cref="ArgumentNullException"><paramref name="onSuccess"/> or <paramref name="onError"/> is <see langword="null"/>. Guarded on this
+    /// non-virtual entry point rather than in the inhabitants, so the contract cannot diverge by inhabitant: dispatch is virtual, and only the inhabitant
+    /// that invokes a delegate would otherwise notice it is null.</exception>
+    public TResult Match<TResult>(Func<T, TResult> onSuccess, Func<ImmutableArray<Error>, TResult> onError)
+        where TResult : notnull
+    {
+        ArgumentNullException.ThrowIfNull(onSuccess);
+        ArgumentNullException.ThrowIfNull(onError);
+        return MatchCore(onSuccess, onError);
+    }
+
+    /// <summary>Inhabitant implementation of <see cref="Match"/>. Delegates arrive non-null; the public wrapper guards them.</summary>
+    private protected abstract TResult MatchCore<TResult>(Func<T, TResult> onSuccess, Func<ImmutableArray<Error>, TResult> onError)
+        where TResult : notnull;
 
     /// <summary>
     /// Functor map. Transforms the success value with <paramref name="fn"/> and passes a failure through unchanged.
     /// </summary>
     /// <returns>A success holding the mapped value, or the original failure unchanged.</returns>
-    public abstract Result<TResult> Map<TResult>(Func<T, TResult> fn);
+    /// <exception cref="ArgumentNullException"><paramref name="fn"/> is <see langword="null"/>.</exception>
+    public Result<TResult> Map<TResult>(Func<T, TResult> fn)
+        where TResult : notnull
+    {
+        ArgumentNullException.ThrowIfNull(fn);
+        return MapCore(fn);
+    }
+
+    /// <summary>Inhabitant implementation of <see cref="Map"/>. The delegate arrives non-null; the public wrapper guards it.</summary>
+    private protected abstract Result<TResult> MapCore<TResult>(Func<T, TResult> fn)
+        where TResult : notnull;
 
     /// <summary>
     /// Monadic bind. Chains a result-returning function after a successful result and short-circuits on failure.
     /// </summary>
     /// <returns>The result of <paramref name="fn"/> applied to the success value, or the original failure unchanged.</returns>
-    public abstract Result<TResult> Bind<TResult>(Func<T, Result<TResult>> fn);
+    /// <exception cref="ArgumentNullException"><paramref name="fn"/> is <see langword="null"/>.</exception>
+    public Result<TResult> Bind<TResult>(Func<T, Result<TResult>> fn)
+        where TResult : notnull
+    {
+        ArgumentNullException.ThrowIfNull(fn);
+        return BindCore(fn);
+    }
+
+    /// <summary>Inhabitant implementation of <see cref="Bind"/>. The delegate arrives non-null; the public wrapper guards it.</summary>
+    private protected abstract Result<TResult> BindCore<TResult>(Func<T, Result<TResult>> fn)
+        where TResult : notnull;
 
     /// <summary>
     /// Async monadic bind, the entry point into a <see cref="ValueTask{TResult}"/> chain from a synchronous result. Chains a result-returning async function
     /// after a successful result and short-circuits on failure. <see cref="ValueTask{TResult}"/> is the async currency of the whole surface, so a continuation
     /// that completes synchronously — a cache hit, a memoized read — allocates nothing; a continuation holding a <see cref="Task{TResult}"/> wraps it with
-    /// <c>new ValueTask&lt;Result&lt;TResult&gt;&gt;(task)</c>. Cancellation is the responsibility of <paramref name="fn"/>: the API threads no
+    /// <c>new ValueTask&lt;Result&lt;TResult&gt;&gt;(task)</c>. The passthrough sets the exception-delivery contract: on a success, <paramref name="fn"/> runs
+    /// synchronously on the caller's stack until its first suspension point, so an exception it throws before suspending surfaces synchronously at the call
+    /// site rather than through the returned value task — the price of the zero-allocation passthrough. The <see cref="ResultAsync"/> extensions differ:
+    /// their continuations run inside an async core, so the same throw is delivered through the returned value task. A failure never invokes
+    /// <paramref name="fn"/>, so neither delivery applies. Cancellation is the responsibility of <paramref name="fn"/>: the API threads no
     /// <see cref="System.Threading.CancellationToken"/>, so a caller needing cancellation passes a lambda that captures the token from its enclosing scope.
     /// </summary>
     /// <returns>A value task for the result of <paramref name="fn"/> applied to the success value, or the original failure unchanged.</returns>
-    public abstract ValueTask<Result<TResult>> BindAsync<TResult>(Func<T, ValueTask<Result<TResult>>> fn);
+    /// <exception cref="ArgumentNullException"><paramref name="fn"/> is <see langword="null"/>. Thrown synchronously at the call site — a usage error does
+    /// not wait to be awaited.</exception>
+    public ValueTask<Result<TResult>> BindAsync<TResult>(Func<T, ValueTask<Result<TResult>>> fn)
+        where TResult : notnull
+    {
+        ArgumentNullException.ThrowIfNull(fn);
+        return BindAsyncCore(fn);
+    }
+
+    /// <summary>Inhabitant implementation of <see cref="BindAsync"/>. The delegate arrives non-null; the public wrapper guards it.</summary>
+    private protected abstract ValueTask<Result<TResult>> BindAsyncCore<TResult>(Func<T, ValueTask<Result<TResult>>> fn)
+        where TResult : notnull;
 
     /// <summary>
     /// LINQ-named alias of <see cref="Map"/>. Transforms the success value with <paramref name="selector"/> and passes a failure through unchanged.
     /// </summary>
     /// <returns>A success holding the mapped value, or the original failure unchanged.</returns>
-    public Result<TResult> Select<TResult>(Func<T, TResult> selector) => Map(selector);
+    /// <exception cref="ArgumentNullException"><paramref name="selector"/> is <see langword="null"/>. Guarded here rather than in <see cref="Map"/> so the
+    /// exception names the parameter the caller passed.</exception>
+    public Result<TResult> Select<TResult>(Func<T, TResult> selector)
+        where TResult : notnull
+    {
+        ArgumentNullException.ThrowIfNull(selector);
+        return MapCore(selector);
+    }
 
     /// <summary>LINQ-named alias of <see cref="Bind"/>. Chains a result-returning function after a successful result and short-circuits on failure.</summary>
     /// <returns>The result of <paramref name="selector"/> applied to the success value, or the original failure unchanged.</returns>
-    public Result<TResult> SelectMany<TResult>(Func<T, Result<TResult>> selector) => Bind(selector);
+    /// <exception cref="ArgumentNullException"><paramref name="selector"/> is <see langword="null"/>.</exception>
+    public Result<TResult> SelectMany<TResult>(Func<T, Result<TResult>> selector)
+        where TResult : notnull
+    {
+        ArgumentNullException.ThrowIfNull(selector);
+        return BindCore(selector);
+    }
 
     /// <summary>
     /// Monadic bind with projection, the shape the compiler binds for chained <c>from</c> clauses in query syntax. It is equivalent to
@@ -123,10 +214,17 @@ public abstract record Result<T>
     /// Bind is sequential; use <c>Result.Apply</c> when independent failures should all be reported.
     /// </summary>
     /// <returns>The projected success value, or the first failure encountered.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="selector"/> or <paramref name="resultSelector"/> is <see langword="null"/>.</exception>
     public Result<TResult> SelectMany<TIntermediate, TResult>(
         Func<T, Result<TIntermediate>> selector,
-        Func<T, TIntermediate, TResult> resultSelector) =>
-        Bind(x => selector(x).Map(y => resultSelector(x, y)));
+        Func<T, TIntermediate, TResult> resultSelector)
+        where TIntermediate : notnull
+        where TResult : notnull
+    {
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(resultSelector);
+        return BindCore(x => selector(x).Map(y => resultSelector(x, y)));
+    }
 }
 
 /// <summary>
@@ -135,16 +233,36 @@ public abstract record Result<T>
 /// </summary>
 public static class Result
 {
+    private const string UndefinedErrorMessage = "error.Type is ErrorType.Undefined: an uninitialized or corrupted Error, never emitted deliberately";
+
     /// <summary>Constructs a successful result. The type parameter is inferred from <paramref name="value"/>.</summary>
     /// <returns>A <see cref="Result{T}.Success"/> holding <paramref name="value"/>.</returns>
-    public static Result<T> Success<T>(T value) => new Result<T>.Success(value);
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is <see langword="null"/>, smuggled past the <c>notnull</c> constraint by a
+    /// null-forgiving operator or a nullable-oblivious caller. The pattern form of the check is JIT-eliminated for value-type <typeparamref name="T"/>.</exception>
+    public static Result<T> Success<T>(T value)
+        where T : notnull
+        => value is null
+            ? throw new ArgumentNullException(nameof(value))
+            : new Result<T>.Success(value);
+
+    /// <summary>Constructs the successful result of a void-shaped operation: a success holding <see cref="Unit.Value"/>.</summary>
+    /// <returns>A <see cref="Result{T}.Success"/> of <see cref="Unit"/> holding <see cref="Unit.Value"/>.</returns>
+    public static Result<Unit> Success()
+        => new Result<Unit>.Success(Unit.Value);
 
     /// <summary>
     /// Constructs a failed result from a single <see cref="Error"/>. The success type <typeparamref name="T"/> must be supplied explicitly, because it cannot be
     /// inferred from <paramref name="error"/>.
     /// </summary>
     /// <returns>A <see cref="Result{T}.Failure"/> carrying <paramref name="error"/>.</returns>
-    public static Result<T> Failure<T>(Error error) => new Result<T>.Failure([error]);
+    /// <exception cref="ArgumentException"><paramref name="error"/> carries <see cref="ErrorType.Undefined"/>. An uninitialized <c>default(Error)</c> reads as
+    /// that zero value, and its <see cref="Error.Code"/> and <see cref="Error.Message"/> reads would otherwise throw later, from inside the consumer's
+    /// error-handling path.</exception>
+    public static Result<T> Failure<T>(Error error)
+        where T : notnull
+        => error.Type == ErrorType.Undefined
+            ? throw new ArgumentException(UndefinedErrorMessage, nameof(error))
+            : new Result<T>.Failure([error]);
 
     /// <summary>
     /// Constructs a failed result from one or more <see cref="Error"/>s. <c>params ReadOnlySpan</c> keeps varargs argument lists off the heap. Collection
@@ -152,10 +270,17 @@ public static class Result
     /// <see cref="OverloadResolutionPriorityAttribute"/>).
     /// </summary>
     /// <returns>A <see cref="Result{T}.Failure"/> carrying the given <paramref name="errors"/>.</returns>
-    /// <exception cref="ArgumentException"><paramref name="errors"/> is empty; a failure must carry at least one error.</exception>
-    public static Result<T> Failure<T>(params ReadOnlySpan<Error> errors) => errors.Length == 0
-        ? throw new ArgumentException("Failure requires at least one error.", nameof(errors))
-        : new Result<T>.Failure([.. errors]);
+    /// <exception cref="ArgumentException"><paramref name="errors"/> is empty (a failure must carry at least one error), or an element carries
+    /// <see cref="ErrorType.Undefined"/>; the message carries the offending index.</exception>
+    public static Result<T> Failure<T>(params ReadOnlySpan<Error> errors)
+        where T : notnull
+    {
+        if (errors.Length == 0)
+            throw new ArgumentException("Failure requires at least one error.", nameof(errors));
+
+        ThrowIfAnyUndefined(errors, nameof(errors));
+        return new Result<T>.Failure([.. errors]);
+    }
 
     /// <summary>
     /// Constructs a failed result from a pre-built <see cref="ImmutableArray{T}"/> of <see cref="Error"/>s. This is the cheapest factory: the array is stored
@@ -163,25 +288,37 @@ public static class Result
     /// <see cref="ReadOnlySpan{T}"/> overload that <see cref="ImmutableArray{T}"/>'s implicit span conversion would otherwise cause.
     /// </summary>
     /// <returns>A <see cref="Result{T}.Failure"/> carrying <paramref name="errors"/>.</returns>
-    /// <exception cref="ArgumentException"><paramref name="errors"/> is default or empty; a failure must carry at least one error.</exception>
+    /// <exception cref="ArgumentException"><paramref name="errors"/> is default or empty (a failure must carry at least one error), or an element carries
+    /// <see cref="ErrorType.Undefined"/>; the message carries the offending index.</exception>
     [OverloadResolutionPriority(1)]
-    public static Result<T> Failure<T>(ImmutableArray<Error> errors) => errors.IsDefaultOrEmpty
-        ? throw new ArgumentException("Failure requires at least one error.", nameof(errors))
-        : new Result<T>.Failure(errors);
+    public static Result<T> Failure<T>(ImmutableArray<Error> errors)
+        where T : notnull
+    {
+        if (errors.IsDefaultOrEmpty)
+            throw new ArgumentException("Failure requires at least one error.", nameof(errors));
+
+        ThrowIfAnyUndefined(errors.AsSpan(), nameof(errors));
+        return new Result<T>.Failure(errors);
+    }
 
     /// <summary>
     /// Constructs a failed result from a list of <see cref="Error"/>s.
     /// </summary>
     /// <returns>A <see cref="Result{T}.Failure"/> carrying the given <paramref name="errors"/>.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="errors"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="errors"/> is empty; a failure must carry at least one error.</exception>
+    /// <exception cref="ArgumentException"><paramref name="errors"/> is empty (a failure must carry at least one error), or an element carries
+    /// <see cref="ErrorType.Undefined"/>; the message carries the offending index.</exception>
     public static Result<T> Failure<T>(IReadOnlyList<Error> errors)
+        where T : notnull
     {
         ArgumentNullException.ThrowIfNull(errors);
 
-        return errors.Count == 0
-            ? throw new ArgumentException("Failure requires at least one error.", nameof(errors))
-            : new Result<T>.Failure([.. errors]);
+        if (errors.Count == 0)
+            throw new ArgumentException("Failure requires at least one error.", nameof(errors));
+
+        ImmutableArray<Error> copied = [.. errors];
+        ThrowIfAnyUndefined(copied.AsSpan(), nameof(errors));
+        return new Result<T>.Failure(copied);
     }
 
     /// <summary>
@@ -190,8 +327,14 @@ public static class Result
     /// first.
     /// </summary>
     /// <returns>A success of <see cref="Unit"/> when <paramref name="condition"/> holds, otherwise a failure carrying <paramref name="error"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="error"/> carries <see cref="ErrorType.Undefined"/>. Checked eagerly on both paths: a guard that only
+    /// fired when the condition failed would leave the defect data-dependent, surfacing only on the first failing check in production.</exception>
     public static Result<Unit> Validate(bool condition, Error error) =>
-        condition ? Success(Unit.Value) : new Result<Unit>.Failure([error]);
+        error.Type == ErrorType.Undefined
+            ? throw new ArgumentException(UndefinedErrorMessage, nameof(error))
+            : condition
+                ? Success(Unit.Value)
+                : new Result<Unit>.Failure([error]);
 
     /// <summary>
     /// Applicative application: feeds a <see cref="Result{T}"/>-wrapped argument to a <see cref="Result{T}"/>-wrapped function. Currying handles multiple
@@ -201,6 +344,8 @@ public static class Result
     /// <returns>A success holding the applied value, or a failure accumulating the errors of whichever inputs failed.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="resultFn"/> or <paramref name="resultArg"/> is <see langword="null"/>.</exception>
     public static Result<TResult> Apply<T, TResult>(Result<Func<T, TResult>> resultFn, Result<T> resultArg)
+        where T : notnull
+        where TResult : notnull
     {
         ArgumentNullException.ThrowIfNull(resultFn);
         ArgumentNullException.ThrowIfNull(resultArg);
@@ -227,6 +372,8 @@ public static class Result
     /// A success of <see cref="Unit"/> when every input succeeds or <paramref name="results"/> is empty (the identity element), otherwise a failure whose errors
     /// are accumulated across all failed inputs in input order.
     /// </returns>
+    /// <exception cref="ArgumentException">An element of <paramref name="results"/> is <see langword="null"/> — a defect in the calling code, thrown at the
+    /// boundary it crosses with the offending index in the message rather than counted as a passing check.</exception>
     public static Result<Unit> Apply(params ReadOnlySpan<Result<Unit>> results)
     {
         var failures = 0;
@@ -240,27 +387,34 @@ public static class Result
                 total += f.Errors.Length;
                 lastFailure = i;
             }
+            else if (results[i] is null)
+            {
+                throw new ArgumentException($"input at index {i} is null", nameof(results));
+            }
         }
 
         if (failures == 0)
-        {
             return Success(Unit.Value);
-        }
 
         if (failures == 1)
-        {
             return results[lastFailure];
-        }
 
         var builder = ImmutableArray.CreateBuilder<Error>(total);
         for (var i = 0; i < results.Length; i++)
         {
             if (results[i] is Result<Unit>.Failure f)
-            {
                 builder.AddRange(f.Errors);
-            }
         }
 
         return new Result<Unit>.Failure(builder.MoveToImmutable());
+    }
+
+    private static void ThrowIfAnyUndefined(ReadOnlySpan<Error> errors, string paramName)
+    {
+        for (var i = 0; i < errors.Length; i++)
+        {
+            if (errors[i].Type == ErrorType.Undefined)
+                throw new ArgumentException($"error at index {i} has ErrorType.Undefined: an uninitialized or corrupted Error, never emitted deliberately", paramName);
+        }
     }
 }

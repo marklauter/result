@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace Results.Tests;
 
@@ -14,9 +15,25 @@ public sealed class ResultTests
     }
 
     [Fact]
+    public void Success_Factory_NullSmuggledPastConstraint_Throws()
+    {
+        // The notnull constraint is compile-time only; null! and nullable-oblivious callers get past it.
+        var ex = Assert.Throws<ArgumentNullException>(() => Result.Success<string>(null!));
+        Assert.Equal("value", ex.ParamName);
+    }
+
+    [Fact]
+    public void Success_UnitFactory_ReturnsSuccessHoldingUnitValue()
+    {
+        var result = Result.Success();
+        var s = Assert.IsType<Result<Unit>.Success>(result);
+        Assert.Equal(Unit.Value, s.Value);
+    }
+
+    [Fact]
     public void Failure_Factory_ReturnsFailureVariant()
     {
-        var error = Error.NotFound("err.x", "msg");
+        var error = Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg"));
         var result = Result.Failure<int>(error);
         var f = Assert.IsType<Result<int>.Failure>(result);
         var only = Assert.Single(f.Errors);
@@ -26,8 +43,8 @@ public sealed class ResultTests
     [Fact]
     public void Failure_ParamsFactory_PreservesOrder()
     {
-        var e1 = Error.Validation("err.1", "first");
-        var e2 = Error.Validation("err.2", "second");
+        var e1 = Error.Validation(ErrorCode.Unchecked("err.1"), ErrorMessage.Unchecked("first"));
+        var e2 = Error.Validation(ErrorCode.Unchecked("err.2"), ErrorMessage.Unchecked("second"));
         var result = Result.Failure<int>(e1, e2);
         var f = Assert.IsType<Result<int>.Failure>(result);
         Assert.Equal(2, f.Errors.Length);
@@ -44,8 +61,8 @@ public sealed class ResultTests
     {
         // Pins overload resolution for the collection-expression call shape: it must bind
         // (to the priority-tagged ImmutableArray overload) rather than go CS0121-ambiguous.
-        var e1 = Error.Validation("err.1", "first");
-        var e2 = Error.Validation("err.2", "second");
+        var e1 = Error.Validation(ErrorCode.Unchecked("err.1"), ErrorMessage.Unchecked("first"));
+        var e2 = Error.Validation(ErrorCode.Unchecked("err.2"), ErrorMessage.Unchecked("second"));
 
         var result = Result.Failure<int>([e1, e2]);
 
@@ -58,11 +75,16 @@ public sealed class ResultTests
     [Fact]
     public void Failure_ImmutableArrayFactory_StoresArrayDirectly()
     {
-        var e1 = Error.Validation("err.1", "first");
-        var e2 = Error.Validation("err.2", "second");
+        var e1 = Error.Validation(ErrorCode.Unchecked("err.1"), ErrorMessage.Unchecked("first"));
+        var e2 = Error.Validation(ErrorCode.Unchecked("err.2"), ErrorMessage.Unchecked("second"));
         var errors = ImmutableArray.Create(e1, e2);
         var result = Result.Failure<int>(errors);
         var f = Assert.IsType<Result<int>.Failure>(result);
+        // Same backing array, not just equal contents: the no-copy storage is the documented
+        // reason this overload exists, and value equality alone would hold for a copying rewrite.
+        Assert.Same(
+            ImmutableCollectionsMarshal.AsArray(errors),
+            ImmutableCollectionsMarshal.AsArray(f.Errors));
         Assert.Equal(errors, f.Errors);
         Assert.Equal(2, f.Errors.Length);
         Assert.Equal(e1, f.Errors[0]);
@@ -80,8 +102,8 @@ public sealed class ResultTests
     [Fact]
     public void Failure_ListFactory_PreservesOrder()
     {
-        var e1 = Error.Validation("err.1", "first");
-        var e2 = Error.Validation("err.2", "second");
+        var e1 = Error.Validation(ErrorCode.Unchecked("err.1"), ErrorMessage.Unchecked("first"));
+        var e2 = Error.Validation(ErrorCode.Unchecked("err.2"), ErrorMessage.Unchecked("second"));
         var result = Result.Failure<int>(new List<Error> { e1, e2 });
         var f = Assert.IsType<Result<int>.Failure>(result);
         Assert.Equal(2, f.Errors.Length);
@@ -92,6 +114,41 @@ public sealed class ResultTests
     [Fact]
     public void Failure_ListFactory_Empty_Throws() =>
         Assert.Throws<ArgumentException>(() => Result.Failure<int>(new List<Error>()));
+
+    [Fact]
+    public void Failure_SingleErrorFactory_UninitializedError_Throws()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => Result.Failure<int>(default(Error)));
+        Assert.Equal("error", ex.ParamName);
+    }
+
+    [Fact]
+    public void Failure_ParamsFactory_UninitializedErrorAmongValid_ThrowsNamingItsIndex()
+    {
+        // A default(Error) mixed in among valid ones — the case a length check cannot catch.
+        var ex = Assert.Throws<ArgumentException>(
+            () => Result.Failure<int>(Error.Validation(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("boom")), default));
+        Assert.Contains("index 1", ex.Message, StringComparison.Ordinal);
+        Assert.Equal("errors", ex.ParamName);
+    }
+
+    [Fact]
+    public void Failure_ImmutableArrayFactory_UninitializedErrorAmongValid_ThrowsNamingItsIndex()
+    {
+        var ex = Assert.Throws<ArgumentException>(
+            () => Result.Failure<int>([Error.Validation(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("boom")), default]));
+        Assert.Contains("index 1", ex.Message, StringComparison.Ordinal);
+        Assert.Equal("errors", ex.ParamName);
+    }
+
+    [Fact]
+    public void Failure_ListFactory_UninitializedErrorAmongValid_ThrowsNamingItsIndex()
+    {
+        var ex = Assert.Throws<ArgumentException>(
+            () => Result.Failure<int>(new List<Error> { Error.Validation(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("boom")), default }));
+        Assert.Contains("index 1", ex.Message, StringComparison.Ordinal);
+        Assert.Equal("errors", ex.ParamName);
+    }
 
     [Fact]
     public void Match_Success_InvokesOnSuccess()
@@ -106,7 +163,7 @@ public sealed class ResultTests
     [Fact]
     public void Match_Failure_InvokesOnError()
     {
-        var result = Result.Failure<int>(Error.NotFound("err.x", "msg"));
+        var result = Result.Failure<int>(Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg")));
         var matched = result.Match(
             onSuccess: v => $"value: {v}",
             onError: errors => $"error: {errors[0].Code}");
@@ -125,7 +182,7 @@ public sealed class ResultTests
     [Fact]
     public void Map_OverFailure_PassesFailureThrough()
     {
-        var error = Error.NotFound("err.x", "msg");
+        var error = Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg"));
         var result = Result.Failure<int>(error);
         var mapped = result.Map(x => x * 2);
         var f = Assert.IsType<Result<int>.Failure>(mapped);
@@ -154,7 +211,7 @@ public sealed class ResultTests
     [Fact]
     public void Bind_OverSuccessReturningFailure_PropagatesInnerFailure()
     {
-        var inner = Error.Validation("err.range", "out of range");
+        var inner = Error.Validation(ErrorCode.Unchecked("err.range"), ErrorMessage.Unchecked("out of range"));
         var result = Result.Success(21);
         var bound = result.Bind(_ => Result.Failure<int>(inner));
         var f = Assert.IsType<Result<int>.Failure>(bound);
@@ -165,7 +222,7 @@ public sealed class ResultTests
     [Fact]
     public void Bind_OverFailure_SkipsContinuation()
     {
-        var error = Error.NotFound("err.outer", "outer failure");
+        var error = Error.NotFound(ErrorCode.Unchecked("err.outer"), ErrorMessage.Unchecked("outer failure"));
         var result = Result.Failure<int>(error);
         var invoked = false;
         var bound = result.Bind(x =>
@@ -195,7 +252,7 @@ public sealed class ResultTests
     [Fact]
     public async Task BindAsync_OverFailure_SkipsContinuation()
     {
-        var error = Error.NotFound("err.outer", "outer failure");
+        var error = Error.NotFound(ErrorCode.Unchecked("err.outer"), ErrorMessage.Unchecked("outer failure"));
         var result = Result.Failure<int>(error);
         var invoked = false;
         var bound = await result.BindAsync(async _ =>
@@ -213,7 +270,7 @@ public sealed class ResultTests
     [Fact]
     public async Task BindAsync_OverSuccessReturningFailure_PropagatesInnerFailure()
     {
-        var inner = Error.Validation("err.range", "out of range");
+        var inner = Error.Validation(ErrorCode.Unchecked("err.range"), ErrorMessage.Unchecked("out of range"));
         var result = Result.Success(21);
         var bound = await result.BindAsync(async _ =>
         {
@@ -241,11 +298,11 @@ public sealed class ResultTests
     [Fact]
     public void PatternMatch_DispatchesOnFailureVariant()
     {
-        var result = Result.Failure<int>(Error.NotFound("err.x", "msg"));
+        var result = Result.Failure<int>(Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg")));
         var code = result switch
         {
             Result<int>.Success => "ok",
-            Result<int>.Failure f => f.Errors[0].Code,
+            Result<int>.Failure f => f.Errors[0].Code.Value,
             _ => "?",
         };
         Assert.Equal("err.x", code);
@@ -262,16 +319,16 @@ public sealed class ResultTests
     [Fact]
     public void Equals_ReturnsTrue_ForIndependentlyConstructedFailuresWithEqualErrors()
     {
-        var a = Result.Failure<int>(Error.NotFound("err.x", "msg"));
-        var b = Result.Failure<int>(Error.NotFound("err.x", "msg"));
+        var a = Result.Failure<int>(Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg")));
+        var b = Result.Failure<int>(Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg")));
         Assert.Equal(a, b);
     }
 
     [Fact]
     public void Equals_ReturnsFalse_WhenFailureErrorsDiffer()
     {
-        var a = Result.Failure<int>(Error.NotFound("err.x", "msg"));
-        var b = Result.Failure<int>(Error.NotFound("err.y", "msg"));
+        var a = Result.Failure<int>(Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg")));
+        var b = Result.Failure<int>(Error.NotFound(ErrorCode.Unchecked("err.y"), ErrorMessage.Unchecked("msg")));
         Assert.NotEqual(a, b);
     }
 
@@ -280,8 +337,8 @@ public sealed class ResultTests
     {
         // Accumulation order is part of the contract (function errors first, left-then-right),
         // so equality is sequence equality, not set equality.
-        var e1 = Error.Validation("err.1", "first");
-        var e2 = Error.Validation("err.2", "second");
+        var e1 = Error.Validation(ErrorCode.Unchecked("err.1"), ErrorMessage.Unchecked("first"));
+        var e2 = Error.Validation(ErrorCode.Unchecked("err.2"), ErrorMessage.Unchecked("second"));
         var a = Result.Failure<int>(e1, e2);
         var b = Result.Failure<int>(e2, e1);
         Assert.NotEqual(a, b);
@@ -291,15 +348,15 @@ public sealed class ResultTests
     [SuppressMessage("Maintainability", "CA1508:Avoid dead conditional code", Justification = "always-false is the behavior under test: pins the null branch of the hand-written Equals")]
     public void Equals_ReturnsFalse_ForNullFailure()
     {
-        var failure = Assert.IsType<Result<int>.Failure>(Result.Failure<int>(Error.NotFound("err.x", "msg")));
+        var failure = Assert.IsType<Result<int>.Failure>(Result.Failure<int>(Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg"))));
         Assert.False(failure.Equals(null));
     }
 
     [Fact]
     public void GetHashCode_ReturnsSameValue_ForEqualFailures()
     {
-        var a = Result.Failure<int>(Error.NotFound("err.x", "msg"));
-        var b = Result.Failure<int>(Error.NotFound("err.x", "msg"));
+        var a = Result.Failure<int>(Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg")));
+        var b = Result.Failure<int>(Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg")));
         Assert.Equal(a.GetHashCode(), b.GetHashCode());
     }
 
@@ -307,8 +364,43 @@ public sealed class ResultTests
     public void Equals_ReturnsFalse_BetweenSuccessAndFailure()
     {
         var success = Result.Success(42);
-        var failure = Result.Failure<int>(Error.NotFound("err.x", "msg"));
+        var failure = Result.Failure<int>(Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg")));
         Assert.NotEqual(success, failure);
+    }
+
+    [Fact]
+    public void Failure_ToString_SingleError_ContainsCodeAndMessage()
+    {
+        // Containment only: the exact rendered format is not part of the contract.
+        var s = Result.Failure<int>(Error.Validation(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("boom"))).ToString();
+        Assert.Contains("err.x", s, StringComparison.Ordinal);
+        Assert.Contains("boom", s, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Failure_ToString_ContainsEveryCodeAndMessage()
+    {
+        var s = Result.Failure<int>(
+            Error.Validation(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("boom")),
+            Error.NotFound(ErrorCode.Unchecked("err.y"), ErrorMessage.Unchecked("gone"))).ToString();
+        Assert.Contains("err.x", s, StringComparison.Ordinal);
+        Assert.Contains("boom", s, StringComparison.Ordinal);
+        Assert.Contains("err.y", s, StringComparison.Ordinal);
+        Assert.Contains("gone", s, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Failure_StringInterpolation_ContainsEveryCodeAndMessage()
+    {
+        // The motivating scenario: a failure formatted into a log message via interpolation.
+        var result = Result.Failure<int>(
+            Error.Validation(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("boom")),
+            Error.NotFound(ErrorCode.Unchecked("err.y"), ErrorMessage.Unchecked("gone")));
+        var s = $"operation failed: {result}";
+        Assert.Contains("err.x", s, StringComparison.Ordinal);
+        Assert.Contains("boom", s, StringComparison.Ordinal);
+        Assert.Contains("err.y", s, StringComparison.Ordinal);
+        Assert.Contains("gone", s, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -326,7 +418,7 @@ public sealed class ResultTests
     [Fact]
     public void Apply_WrappedFunctionFailure_PassesFunctionErrorThrough()
     {
-        var error = Error.Undefined("err.fn", "function unavailable");
+        var error = Error.NotFound(ErrorCode.Unchecked("err.fn"), ErrorMessage.Unchecked("function unavailable"));
         var doubler = Result.Failure<Func<int, int>>(error);
         var arg = Result.Success(21);
 
@@ -341,7 +433,7 @@ public sealed class ResultTests
     public void Apply_WrappedArgFailure_PassesArgErrorThrough()
     {
         var doubler = Result.Success<Func<int, int>>(x => x * 2);
-        var error = Error.NotFound("err.arg", "arg missing");
+        var error = Error.NotFound(ErrorCode.Unchecked("err.arg"), ErrorMessage.Unchecked("arg missing"));
         var arg = Result.Failure<int>(error);
 
         var applied = Result.Apply(doubler, arg);
@@ -354,8 +446,8 @@ public sealed class ResultTests
     [Fact]
     public void Apply_BothFailures_AccumulatesBothErrors()
     {
-        var fnError = Error.Undefined("err.fn", "function unavailable");
-        var argError = Error.NotFound("err.arg", "arg missing");
+        var fnError = Error.NotFound(ErrorCode.Unchecked("err.fn"), ErrorMessage.Unchecked("function unavailable"));
+        var argError = Error.NotFound(ErrorCode.Unchecked("err.arg"), ErrorMessage.Unchecked("arg missing"));
         var doubler = Result.Failure<Func<int, int>>(fnError);
         var arg = Result.Failure<int>(argError);
 
@@ -393,7 +485,7 @@ public sealed class ResultTests
     [Fact]
     public void Select_OverFailure_PassesFailureThrough()
     {
-        var error = Error.NotFound("err.x", "msg");
+        var error = Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg"));
         var result = Result.Failure<int>(error);
         var selected = result.Select(x => x * 2);
         var f = Assert.IsType<Result<int>.Failure>(selected);
@@ -413,7 +505,7 @@ public sealed class ResultTests
     [Fact]
     public void SelectMany_OverFailure_SkipsContinuation()
     {
-        var error = Error.NotFound("err.outer", "outer failure");
+        var error = Error.NotFound(ErrorCode.Unchecked("err.outer"), ErrorMessage.Unchecked("outer failure"));
         var result = Result.Failure<int>(error);
         var invoked = false;
         var bound = result.SelectMany(x =>
@@ -440,7 +532,7 @@ public sealed class ResultTests
     [Fact]
     public void SelectMany_WithProjection_InnerFailure_PropagatesWithoutProjecting()
     {
-        var inner = Error.Validation("err.inner", "inner failure");
+        var inner = Error.Validation(ErrorCode.Unchecked("err.inner"), ErrorMessage.Unchecked("inner failure"));
         var projected = false;
         var result = Result.Success(10).SelectMany(
             _ => Result.Failure<int>(inner),
@@ -472,7 +564,7 @@ public sealed class ResultTests
     public void SelectMany_QuerySyntax_ShortCircuitsOnFirstFailure()
     {
         // Bind is sequential: the second clause's error is never produced, unlike applicative Apply.
-        var e1 = Error.Validation("err.1", "first");
+        var e1 = Error.Validation(ErrorCode.Unchecked("err.1"), ErrorMessage.Unchecked("first"));
         var result =
             from x in Result.Failure<int>(e1)
             from y in Result.Success(32)
@@ -485,7 +577,7 @@ public sealed class ResultTests
     [Fact]
     public void Validate_ConditionHolds_ReturnsSuccessUnit()
     {
-        var result = Result.Validate(condition: true, Error.Validation("err.x", "unused"));
+        var result = Result.Validate(condition: true, Error.Validation(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("unused")));
         var s = Assert.IsType<Result<Unit>.Success>(result);
         Assert.Equal(Unit.Value, s.Value);
     }
@@ -493,7 +585,7 @@ public sealed class ResultTests
     [Fact]
     public void Validate_ConditionFails_ReturnsFailureCarryingError()
     {
-        var error = Error.Validation("err.x", "condition violated");
+        var error = Error.Validation(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("condition violated"));
         var result = Result.Validate(condition: false, error);
         var f = Assert.IsType<Result<Unit>.Failure>(result);
         var only = Assert.Single(f.Errors);
@@ -501,15 +593,31 @@ public sealed class ResultTests
     }
 
     [Fact]
+    public void Validate_UninitializedError_ConditionHolds_Throws()
+    {
+        // The guard is eager: a true condition must not let the trash error slide through unread,
+        // or the defect stays data-dependent and waits for the first failing check in production.
+        var ex = Assert.Throws<ArgumentException>(() => Result.Validate(condition: true, default));
+        Assert.Equal("error", ex.ParamName);
+    }
+
+    [Fact]
+    public void Validate_UninitializedError_ConditionFails_Throws()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => Result.Validate(condition: false, default));
+        Assert.Equal("error", ex.ParamName);
+    }
+
+    [Fact]
     public void Validate_ComposedWithVariadicApply_AccumulatesEveryViolation()
     {
         // The intended pairing: lift independent checks, combine applicatively, report all violations.
-        var e1 = Error.Validation("err.1", "first");
-        var e2 = Error.Validation("err.2", "second");
+        var e1 = Error.Validation(ErrorCode.Unchecked("err.1"), ErrorMessage.Unchecked("first"));
+        var e2 = Error.Validation(ErrorCode.Unchecked("err.2"), ErrorMessage.Unchecked("second"));
 
         var result = Result.Apply(
             Result.Validate(condition: false, e1),
-            Result.Validate(condition: true, Error.Validation("err.ok", "unused")),
+            Result.Validate(condition: true, Error.Validation(ErrorCode.Unchecked("err.ok"), ErrorMessage.Unchecked("unused"))),
             Result.Validate(condition: false, e2));
 
         var f = Assert.IsType<Result<Unit>.Failure>(result);
@@ -522,7 +630,7 @@ public sealed class ResultTests
     public void Apply_BinaryViaCurry_FirstArgFailure_ShortCircuits()
     {
         var curriedAdd = Result.Success<Func<int, Func<int, int>>>(x => y => x + y);
-        var error = Error.Validation("err.first", "first arg bad");
+        var error = Error.Validation(ErrorCode.Unchecked("err.first"), ErrorMessage.Unchecked("first arg bad"));
         var a = Result.Failure<int>(error);
         var b = Result.Success(32);
 

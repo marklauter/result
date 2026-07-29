@@ -1,12 +1,25 @@
 ---
 title: Pin global.json to SDK 10.0.204 with rollForward disable
+type: todo
 summary: global.json currently pins 10.0.100 / latestFeature; bump to 10.0.204 and set rollForward to disable to match the house SDK version.
-tags: [todo, global-json, sdk, house-canon]
+tags: [global-json, sdk, house-canon]
 created: 2026-07-28
 priority: medium
-effort: low
-status: open
+status: declined
 ---
+
+## Resolution
+
+Declined 2026-07-29, reverting a brief application. The pin went in as
+`10.0.204` / `rollForward: disable` (commit 59dee2e) and was backed out the
+same day: with `latestFeature`, the version in `global.json` is a floor, not a
+pin — it rolls up to the newest installed feature band within 10.0 — so the
+template's `10.0.100` is deliberate, meaning "any 10.0 SDK, prefer newest."
+Raising the floor to `10.0.204` while keeping `latestFeature` would fail a
+machine carrying only the 100-band SDK while silently accepting a future
+300-band one, the worst of both settings. `global.json` stays at `10.0.100` /
+`latestFeature`. Plumber carries a copy of this todo and should decline it for
+the same reason.
 
 Carried from plumber, which was scaffolded from the same template and has this
 todo open too.

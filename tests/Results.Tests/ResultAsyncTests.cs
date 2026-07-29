@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Results.Tests;
 
 public sealed class ResultAsyncTests
@@ -27,7 +29,7 @@ public sealed class ResultAsyncTests
     [Fact]
     public async Task MapAsync_OverFailure_SkipsContinuation()
     {
-        var error = Error.NotFound("err.outer", "outer failure");
+        var error = Error.NotFound(ErrorCode.Unchecked("err.outer"), ErrorMessage.Unchecked("outer failure"));
         var invoked = false;
         var mapped = await ValueTask.FromResult(Result.Failure<int>(error)).MapAsync(x =>
         {
@@ -51,7 +53,7 @@ public sealed class ResultAsyncTests
     [Fact]
     public async Task BindAsync_SyncContinuation_OverFailure_SkipsContinuation()
     {
-        var error = Error.NotFound("err.outer", "outer failure");
+        var error = Error.NotFound(ErrorCode.Unchecked("err.outer"), ErrorMessage.Unchecked("outer failure"));
         var invoked = false;
         var bound = await Pending(Result.Failure<int>(error)).BindAsync(x =>
         {
@@ -75,7 +77,7 @@ public sealed class ResultAsyncTests
     [Fact]
     public async Task BindAsync_AsyncContinuation_OverFailure_SkipsContinuation()
     {
-        var error = Error.NotFound("err.outer", "outer failure");
+        var error = Error.NotFound(ErrorCode.Unchecked("err.outer"), ErrorMessage.Unchecked("outer failure"));
         var invoked = false;
         var bound = await Pending(Result.Failure<int>(error)).BindAsync(x =>
         {
@@ -91,11 +93,40 @@ public sealed class ResultAsyncTests
     [Fact]
     public async Task BindAsync_AsyncContinuation_OverSuccessReturningFailure_PropagatesInnerFailure()
     {
-        var inner = Error.Validation("err.range", "out of range");
+        var inner = Error.Validation(ErrorCode.Unchecked("err.range"), ErrorMessage.Unchecked("out of range"));
         var bound = await Pending(Result.Success(21)).BindAsync(_ => Pending(Result.Failure<int>(inner)));
         var f = Assert.IsType<Result<int>.Failure>(bound);
         var only = Assert.Single(f.Errors);
         Assert.Equal(inner, only);
+    }
+
+    // The three tests below pin documented behavior, not a fix: they were green the day they were
+    // written. Result<T>.BindAsync's success path is a non-async passthrough (the zero-allocation
+    // property its doc advertises), so a continuation throw before the first suspension point
+    // escapes synchronously at the call site; the ResultAsync extensions run their continuations
+    // inside an async core, so the same throw is delivered through the returned value task.
+
+    [Fact]
+    [SuppressMessage("Reliability", "CA2012:Use ValueTasks correctly", Justification = "The continuation throws before a ValueTask exists; the discard is the no-await form that proves the throw is synchronous.")]
+    public void BindAsync_EntryPoint_ContinuationThrowsBeforeSuspending_OverSuccess_ThrowsSynchronously() =>
+        Assert.Throws<InvalidOperationException>(() => _ = Result.Success(1).BindAsync<int>(_ => throw new InvalidOperationException()));
+
+    [Fact]
+    public async Task BindAsync_EntryPoint_ThrowingContinuation_OverFailure_SkipsContinuation()
+    {
+        var error = Error.NotFound(ErrorCode.Unchecked("err.outer"), ErrorMessage.Unchecked("outer failure"));
+        var bound = await Result.Failure<int>(error).BindAsync<int>(_ => throw new InvalidOperationException());
+        var f = Assert.IsType<Result<int>.Failure>(bound);
+        var only = Assert.Single(f.Errors);
+        Assert.Equal(error, only);
+    }
+
+    [Fact]
+    public async Task BindAsync_AsyncContinuation_ThrowsBeforeSuspending_DeliversThroughTask()
+    {
+        // The cast disambiguates the two BindAsync extension overloads, which a bare throw-expression lambda satisfies equally.
+        var pending = Pending(Result.Success(1)).BindAsync((Func<int, ValueTask<Result<int>>>)(_ => throw new InvalidOperationException()));
+        _ = await Assert.ThrowsAsync<InvalidOperationException>(pending.AsTask);
     }
 
     [Fact]
@@ -119,7 +150,7 @@ public sealed class ResultAsyncTests
     [Fact]
     public async Task MatchAsync_OverFailure_TakesErrorPath()
     {
-        var error = Error.NotFound("err.outer", "outer failure");
+        var error = Error.NotFound(ErrorCode.Unchecked("err.outer"), ErrorMessage.Unchecked("outer failure"));
         var matched = await Pending(Result.Failure<int>(error)).MatchAsync(x => x, errors => -errors.Length);
         Assert.Equal(-1, matched);
     }

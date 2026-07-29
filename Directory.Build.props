@@ -30,7 +30,8 @@
 		<IsTestProject>true</IsTestProject>
 		<CollectCoverage>true</CollectCoverage>
 		<CoverletOutputFormat>cobertura</CoverletOutputFormat>
-		<!-- Coverage floor (per-class minimum: every class must clear it, not the assembly average). Verified by the gate in .github/workflows/dotnet.tests.yml: dotnet format (verify-no-changes), then dotnet build and dotnet test in Debug and Release. -->
+		<!-- Coverage floor: 95 on line, branch, and method, the house standard. ThresholdStat minimum applies it per class, so every class clears the floor instead of the assembly averaging past a weak one. Matches plumber; pool and DynamoDbLite use the looser total. -->
+		<!-- Verify with build-gate.sh from the writing-csharp skill; CI runs the same steps in .github/workflows/dotnet.tests.yml. -->
 		<Threshold>95,95,95</Threshold>
 		<ThresholdType>line,branch,method</ThresholdType>
 		<ThresholdStat>minimum</ThresholdStat>
