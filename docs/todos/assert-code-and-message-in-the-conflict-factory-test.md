@@ -5,8 +5,19 @@ summary: Conflict_CreatesErrorWithConflictType asserts only Type, while the Vali
 tags: [testing, error]
 created: 2026-07-28
 priority: low
-status: open
+status: closed
 ---
+
+## Resolution
+
+Closed 2026-07-29. The two assertions were added to
+`Conflict_CreatesErrorWithConflictType`, asserting through `.Code.Value` and
+`.Message.Value` since [[wrap-error-code-and-message-as-value-types]] landed
+typed wrappers in the meantime. That landing also retired most of this todo's
+threat: transposed factory arguments no longer compile. What the assertions
+still pin is a factory body that drops or hardcodes its arguments, plus symmetry
+with the other three factory tests. The body below predates the wrappers —
+`Error.Create` and the string-typed properties it mentions are gone.
 
 ## Start by pinning the behavior
 

@@ -5,8 +5,24 @@ summary: Sequence allocates both builders on every call and keeps filling the va
 tags: [efficiency, allocation]
 created: 2026-07-28
 priority: low
-status: open
+status: closed
 ---
+
+## Resolution
+
+Closed 2026-07-29. Landed without the benchmark on Mark's direction, after the
+alloc-versus-iterate-twice question resolved per overload: the `IEnumerable`
+overload cannot enumerate twice (one-shot sources; CA1851), so it stays
+single-pass and the only removable waste is speculative allocation and
+post-failure appends. Both builders are now lazy — `errors is null` doubles as
+the stop-feeding-values guard — so all-success never allocates the errors
+builder, a failure before the first success never allocates the values builder,
+and successes after the first failure do no work. The successes collected before
+the first failure remain the irreducible cost of a single pass, stated in a
+comment at the site. Existing `ResultSequenceTests` covered every new branch;
+no test changes were needed. The two-pass zero-waste shape (scan and count,
+then build exactly one right-sized array) belongs to the known-count overloads
+in [[add-sequence-overloads-mirroring-failures-set]].
 
 ## Start by measuring, not by testing
 

@@ -34,6 +34,8 @@ public sealed class ErrorTests
     {
         var error = Error.Conflict(ErrorCode.Unchecked("err.version.conflict"), ErrorMessage.Unchecked("version mismatch"));
         Assert.Equal(ErrorType.Conflict, error.Type);
+        Assert.Equal("err.version.conflict", error.Code.Value);
+        Assert.Equal("version mismatch", error.Message.Value);
     }
 
     [Fact]

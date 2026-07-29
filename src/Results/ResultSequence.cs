@@ -23,22 +23,38 @@ public static class ResultSequence
     {
         ArgumentNullException.ThrowIfNull(results);
 
-        var values = ImmutableArray.CreateBuilder<T>();
-        var errors = ImmutableArray.CreateBuilder<Error>();
+        // Both builders are lazy: all-success never allocates errors, and a failure before the
+        // first success never allocates values. Once errors exists the values builder's contents
+        // are dead — the failure path discards them — so later successes stop feeding it. The
+        // successes collected before the first failure are the irreducible waste of a single
+        // pass, and a single pass is forced: enumerating an arbitrary IEnumerable twice is the
+        // CA1851 defect.
+        ImmutableArray<T>.Builder? values = null;
+        ImmutableArray<Error>.Builder? errors = null;
         var index = 0;
         foreach (var result in results)
         {
             if (result is Result<T>.Success success)
-                values.Add(success.Value);
+            {
+                if (errors is null)
+                    (values ??= ImmutableArray.CreateBuilder<T>())
+                        .Add(success.Value);
+            }
             else if (result is Result<T>.Failure failure)
-                errors.AddRange(failure.Errors);
+            {
+                (errors ??= ImmutableArray.CreateBuilder<Error>())
+                    .AddRange(failure.Errors);
+            }
             else
+            {
                 throw new ArgumentException($"input at index {index} is null", nameof(results));
+            }
+
             index++;
         }
 
-        return errors.Count > 0
+        return errors is not null
             ? Result.Failure<ImmutableArray<T>>(errors.ToImmutable())
-            : Result.Success(values.ToImmutable());
+            : Result.Success(values?.ToImmutable() ?? []);
     }
 }

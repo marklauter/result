@@ -5,8 +5,17 @@ summary: The test named StoresArrayDirectly asserts value equality, which a copy
 tags: [testing, contract]
 created: 2026-07-28
 priority: low
-status: open
+status: closed
 ---
+
+## Resolution
+
+Closed 2026-07-29. `Failure_ImmutableArrayFactory_StoresArrayDirectly` now
+asserts `Assert.Same` on `ImmutableCollectionsMarshal.AsArray` of the input and
+`f.Errors`, ahead of the existing element assertions, with a comment naming why
+reference identity is the contract being pinned. The no-copy promise is in the
+factory's XML doc, so this is contract coverage, not an implementation-detail
+assert.
 
 ## Start by pinning the behavior
 

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace Results.Tests;
 
@@ -79,6 +80,11 @@ public sealed class ResultTests
         var errors = ImmutableArray.Create(e1, e2);
         var result = Result.Failure<int>(errors);
         var f = Assert.IsType<Result<int>.Failure>(result);
+        // Same backing array, not just equal contents: the no-copy storage is the documented
+        // reason this overload exists, and value equality alone would hold for a copying rewrite.
+        Assert.Same(
+            ImmutableCollectionsMarshal.AsArray(errors),
+            ImmutableCollectionsMarshal.AsArray(f.Errors));
         Assert.Equal(errors, f.Errors);
         Assert.Equal(2, f.Errors.Length);
         Assert.Equal(e1, f.Errors[0]);

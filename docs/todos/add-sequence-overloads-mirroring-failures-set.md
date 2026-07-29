@@ -44,9 +44,14 @@ overload rather than the `IEnumerable` one once both exist, so the array-based
 tests in `ResultSequenceTests` silently switch overloads. The null-element
 theories need to run against each overload explicitly.
 
-The span overload's capacity preset overlaps
-[[avoid-discarded-builder-work-in-sequence]], which rewrites the same loop and
-wants a benchmark first; land these in one pass or land that one first.
+[[avoid-discarded-builder-work-in-sequence]] closed 2026-07-29 with lazy
+builders in the `IEnumerable` overload, so the loop-rewrite ordering constraint
+is discharged. The new overloads should not copy that shape: a span can be read
+twice, so pass one scans for failure (counting errors, throwing on null
+elements before anything allocates) and pass two fills exactly one right-sized
+builder — `MoveToImmutable` on the success path — with zero waste on either
+path. Capacity presets on a single speculative pass would waste an n-sized
+values array whenever an early element fails.
 
 ## Verify
 
