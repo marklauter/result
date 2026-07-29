@@ -21,7 +21,12 @@ public abstract record Result<T>
 {
     private protected Result() { }
 
-    /// <summary>The successful inhabitant of <see cref="Result{T}"/>.</summary>
+    /// <summary>
+    /// The successful inhabitant of <see cref="Result{T}"/>. Equality is the record-synthesized comparison over <see cref="Value"/>, so it delegates to
+    /// <c>EqualityComparer&lt;T&gt;.Default</c>: two successes are equal exactly when their payloads are, and a payload without value semantics — an array, a
+    /// <see cref="List{T}"/>, an <see cref="ImmutableArray{T}"/> — compares by reference here just as it does anywhere else. The payload's owner defines its
+    /// equality; <see cref="Failure"/> hand-writes its own only because its payload is library-owned.
+    /// </summary>
     public sealed record Success(T Value)
         : Result<T>
     {

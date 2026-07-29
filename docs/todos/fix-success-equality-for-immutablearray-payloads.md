@@ -5,8 +5,32 @@ summary: Success uses record-synthesized equality, which compares an ImmutableAr
 tags: [correctness, equality, value-semantics]
 created: 2026-07-28
 priority: high
-status: open
+status: declined
 ---
+
+## Resolution
+
+Declined 2026-07-28, no code change. `Result<T>.Success` delegates equality to
+`EqualityComparer<T>.Default`, which is the correct semantics for a generic
+wrapper: two successes are equal exactly when their payloads are. That the
+`ImmutableArray<T>` payload compares its underlying array by reference is
+`ImmutableArray<T>`'s own contract, not a defect in `Success`, and it is the
+same behavior any reference-typed `T` without value equality already has.
+
+The repro below was confirmed against the current build — `Assert.Equal` on two
+structurally identical `Sequence` outputs fails, while the `Failure` and scalar
+cases pass — so the observation is accurate. What it does not establish is a
+defect: imposing structural equality on `Success` would make two results compare
+equal whose payloads compare unequal, which is the worse surprise. The remaining
+asymmetry is that `Failure` hand-writes structural equality over
+`ImmutableArray<Error>` rather than delegating; that stands, because `Errors` is
+library-owned and value semantics is the contract `Failure` promises.
+
+The one change made is documentation: `Success`'s doc comment now states that
+equality delegates to `EqualityComparer<T>.Default` and that the payload's owner
+defines its equality, which is also why `Failure` hand-writes its own — its
+payload is library-owned. This note existing at all is the evidence the
+delegation was not self-evident to a reader coming to `Result.cs` cold.
 
 ## Start by pinning the failure
 
