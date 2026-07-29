@@ -1,5 +1,6 @@
 ---
 title: Apply the house GitHub repo standard to result
+type: todo
 summary: Catalog of the repo settings, workflows, and Dependabot config that plumber and pool share; result now has everything except the NUGET_API_KEY secret and the deferred code_scanning gate.
 tags: [github, repo-standard, ci, house-canon]
 created: 2026-07-28

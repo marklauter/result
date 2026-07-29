@@ -1,5 +1,6 @@
 ---
 title: Replace the placeholder package icon
+type: todo
 summary: Both logo files are generated placeholders with PLACEHOLDER on their face; the csproj and the README are already wired to them and need real artwork.
 tags: [packaging, nuget, branding]
 created: 2026-07-28

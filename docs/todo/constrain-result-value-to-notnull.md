@@ -1,5 +1,6 @@
 ---
 title: Constrain Result<T> to notnull
+type: todo
 summary: Result<T> has no where T : notnull, so a null-carrying "success" is representable and NREs downstream. Adding the constraint after 1.0 is source-breaking for every consumer.
 tags: [correctness, nullability, api-contract, pre-1.0]
 created: 2026-07-28

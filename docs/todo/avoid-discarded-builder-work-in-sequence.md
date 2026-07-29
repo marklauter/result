@@ -1,5 +1,6 @@
 ---
 title: Avoid discarded builder work in Sequence
+type: todo
 summary: Sequence allocates both builders on every call and keeps filling the values builder after a failure is seen, so on the failure path all of that work is thrown away.
 tags: [efficiency, allocation]
 created: 2026-07-28

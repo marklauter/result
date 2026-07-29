@@ -1,5 +1,6 @@
 ---
 title: Test the documented ArgumentNullException guards
+type: todo
 summary: Three public entry points document and enforce a null guard that no test exercises, and because ThrowIfNull emits no branch, the coverage gate cannot see the gap.
 tags: [testing, coverage, null-safety]
 created: 2026-07-28

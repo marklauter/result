@@ -1,5 +1,6 @@
 ---
 title: Pin global.json to SDK 10.0.204 with rollForward disable
+type: todo
 summary: global.json currently pins 10.0.100 / latestFeature; bump to 10.0.204 and set rollForward to disable to match the house SDK version.
 tags: [global-json, sdk, house-canon]
 created: 2026-07-28

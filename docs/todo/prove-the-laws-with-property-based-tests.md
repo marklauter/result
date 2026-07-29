@@ -1,5 +1,6 @@
 ---
 title: Prove the functor, applicative, and monad laws instead of sampling them
+type: todo
 summary: ResultLawTests asserts each law at one fixed input, so an implementation correct only at the sampled values passes the suite that claims to pin the algebraic contract.
 tags: [testing, laws, property-based]
 created: 2026-07-28
