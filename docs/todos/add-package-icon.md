@@ -5,8 +5,15 @@ summary: Both logo files are generated placeholders with PLACEHOLDER on their fa
 tags: [packaging, nuget, branding]
 created: 2026-07-28
 priority: medium
-status: open
+status: closed
+closed: 2026-07-29
 ---
+
+Closed 2026-07-29. The placeholder files were removed. The packed NuGet icon is
+now `images/msl.rocket.tx.clean.small.png` (128x128, the rocket mark alone),
+and the README header features only `images/msl.armory.small.png` — the
+Results-specific logo role is gone. `dotnet pack` verified the icon lands in
+the nupkg.
 
 The logo is a placeholder: a slate tile with a dashed border reading `R<T>` /
 `PLACEHOLDER` / `replace me`. It ships in the package, so it renders on the
