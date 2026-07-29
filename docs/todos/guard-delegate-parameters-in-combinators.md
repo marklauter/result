@@ -5,8 +5,40 @@ summary: None of the combinators null-check their delegates, and behavior diverg
 tags: [correctness, null-safety, api-contract]
 created: 2026-07-28
 priority: medium
-status: open
+status: closed
 ---
+
+## Resolution
+
+Closed 2026-07-29. Every delegate parameter across the combinator surface now
+throws `ArgumentNullException` naming the parameter, identically on both
+inhabitants.
+
+The four abstract members took the structural option this note named: `Match`,
+`Map`, `Bind`, and `BindAsync` are now public non-virtual wrappers that guard
+with `ArgumentNullException.ThrowIfNull` and delegate to `private protected
+abstract` cores (`MatchCore`, `MapCore`, `BindCore`, `BindAsyncCore`) that the
+two inhabitants override. `Select` and both `SelectMany` shapes guard directly
+and call the cores, so the exception names `selector`/`resultSelector` rather
+than `fn`. The `ResultAsync` extensions split into a guarding wrapper over a
+private async core, so the guard throws synchronously at the call site instead
+of being captured into the returned value task — a usage error does not wait for
+the receiver.
+
+Two regression gates. `NullGuardTests` (born `DelegateGuardTests`, renamed when
+[test-the-argumentnullexception-guards.md](test-the-argumentnullexception-guards.md)
+folded its cases in) holds fourteen tests, one per
+delegate parameter, each asserting the pair of inhabitants together with
+`ParamName` pinned; all fourteen were proven red first (the Success half threw
+`NullReferenceException`, the Failure half threw nothing). The architecture test
+`PublicDelegateTakingMethodsAreNonVirtual` pins the pattern itself: a public
+instance method taking a delegate must be non-virtual, so the next combinator
+cannot put the guard back in the inhabitants.
+
+Contract note: the Failure inhabitants previously accepted a null delegate
+silently; they now throw. No `<exception>` tag ever promised the old behavior,
+and the package is pre-1.0. Every guarded entry point carries an `<exception>`
+tag now. Gate green: 152 tests, coverage 100/100/100.
 
 ## Start by pinning the failure
 

@@ -5,8 +5,24 @@ summary: Three public entry points document and enforce a null guard that no tes
 tags: [testing, coverage, null-safety]
 created: 2026-07-28
 priority: medium
-status: open
+status: closed
 ---
+
+## Resolution
+
+Closed 2026-07-29. Four tests, one per guarded site: the `IReadOnlyList`
+failure factory (`errors`), both parameters of the binary `Apply` (`resultFn`,
+`resultArg`), and `Sequence` (`results`), each asserting
+`ArgumentNullException` and its `ParamName`. Green on first run as this note
+predicted — regression protection, not a fix.
+
+The fold-together instruction was followed in the other direction:
+[guard-delegate-parameters-in-combinators.md](guard-delegate-parameters-in-combinators.md)
+landed first with its tests in `DelegateGuardTests`, so that class was renamed
+`NullGuardTests` and these four joined it. Every null-contract case — delegate
+parameters and reference parameters — now lives in
+`tests/Results.Tests/NullGuardTests.cs`. Gate green: 156 tests, coverage
+100/100/100.
 
 ## Start by pinning the behavior
 

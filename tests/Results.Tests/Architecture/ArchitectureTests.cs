@@ -64,6 +64,28 @@ public sealed class ArchitectureTests : global::Architecture.Testing.Architectur
             $"{p.DeclaringMethod?.Name ?? p.DeclaringType?.Name} declares {p.Name} without a notnull constraint"));
     }
 
+    /// <summary>
+    /// Every public instance method that takes a delegate is non-virtual, so its null guard lives on
+    /// the single base entry point and dispatch cannot route around it. A virtual delegate-taking
+    /// member would put the guard back in the inhabitants, where the next one can omit it and the
+    /// null contract silently diverges by inhabitant again.
+    /// </summary>
+    [Fact]
+    public void PublicDelegateTakingMethodsAreNonVirtual()
+    {
+        var methods = TargetAssembly.GetExportedTypes()
+            .SelectMany(static t => t.GetMethods(
+                BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            .Where(static m => m.GetParameters().Any(static p =>
+                typeof(Delegate).IsAssignableFrom(p.ParameterType)))
+            .ToList();
+
+        Assert.NotEmpty(methods);
+        Assert.All(methods, static m => Assert.False(
+            m.IsVirtual,
+            $"{m.DeclaringType?.Name}.{m.Name} takes a delegate through a virtual entry point; guard it on a non-virtual wrapper delegating to a private protected core"));
+    }
+
     private static bool HasNotNullConstraint(Type typeParameter)
     {
         if (NullableFlag(typeParameter.GetCustomAttributesData(), "NullableAttribute") is { } direct)

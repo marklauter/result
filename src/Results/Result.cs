@@ -32,16 +32,16 @@ public abstract record Result<T>
         : Result<T>
     {
         /// <inheritdoc/>
-        public override TResult Match<TResult>(Func<T, TResult> onSuccess, Func<ImmutableArray<Error>, TResult> onError) => onSuccess(Value);
+        private protected override TResult MatchCore<TResult>(Func<T, TResult> onSuccess, Func<ImmutableArray<Error>, TResult> onError) => onSuccess(Value);
 
         /// <inheritdoc/>
-        public override Result<TResult> Map<TResult>(Func<T, TResult> fn) => new Result<TResult>.Success(fn(Value));
+        private protected override Result<TResult> MapCore<TResult>(Func<T, TResult> fn) => new Result<TResult>.Success(fn(Value));
 
         /// <inheritdoc/>
-        public override Result<TResult> Bind<TResult>(Func<T, Result<TResult>> fn) => fn(Value);
+        private protected override Result<TResult> BindCore<TResult>(Func<T, Result<TResult>> fn) => fn(Value);
 
         /// <inheritdoc/>
-        public override ValueTask<Result<TResult>> BindAsync<TResult>(Func<T, ValueTask<Result<TResult>>> fn) => fn(Value);
+        private protected override ValueTask<Result<TResult>> BindAsyncCore<TResult>(Func<T, ValueTask<Result<TResult>>> fn) => fn(Value);
     }
 
     /// <summary>
@@ -58,16 +58,16 @@ public abstract record Result<T>
         internal Failure(ImmutableArray<Error> errors) => Errors = errors;
 
         /// <inheritdoc/>
-        public override TResult Match<TResult>(Func<T, TResult> onSuccess, Func<ImmutableArray<Error>, TResult> onError) => onError(Errors);
+        private protected override TResult MatchCore<TResult>(Func<T, TResult> onSuccess, Func<ImmutableArray<Error>, TResult> onError) => onError(Errors);
 
         /// <inheritdoc/>
-        public override Result<TResult> Map<TResult>(Func<T, TResult> fn) => new Result<TResult>.Failure(Errors);
+        private protected override Result<TResult> MapCore<TResult>(Func<T, TResult> fn) => new Result<TResult>.Failure(Errors);
 
         /// <inheritdoc/>
-        public override Result<TResult> Bind<TResult>(Func<T, Result<TResult>> fn) => new Result<TResult>.Failure(Errors);
+        private protected override Result<TResult> BindCore<TResult>(Func<T, Result<TResult>> fn) => new Result<TResult>.Failure(Errors);
 
         /// <inheritdoc/>
-        public override ValueTask<Result<TResult>> BindAsync<TResult>(Func<T, ValueTask<Result<TResult>>> fn) => ValueTask.FromResult<Result<TResult>>(new Result<TResult>.Failure(Errors));
+        private protected override ValueTask<Result<TResult>> BindAsyncCore<TResult>(Func<T, ValueTask<Result<TResult>>> fn) => ValueTask.FromResult<Result<TResult>>(new Result<TResult>.Failure(Errors));
 
         /// <summary>
         /// Structural equality over <see cref="Errors"/>, element-wise and order-sensitive. Replaces the record-synthesized comparison, which would compare
@@ -91,21 +91,51 @@ public abstract record Result<T>
 
     /// <summary>Pattern-matches the result and produces a value on either path.</summary>
     /// <returns>The value returned by <paramref name="onSuccess"/> for a success, or by <paramref name="onError"/> for a failure.</returns>
-    public abstract TResult Match<TResult>(Func<T, TResult> onSuccess, Func<ImmutableArray<Error>, TResult> onError)
+    /// <exception cref="ArgumentNullException"><paramref name="onSuccess"/> or <paramref name="onError"/> is <see langword="null"/>. Guarded on this
+    /// non-virtual entry point rather than in the inhabitants, so the contract cannot diverge by inhabitant: dispatch is virtual, and only the inhabitant
+    /// that invokes a delegate would otherwise notice it is null.</exception>
+    public TResult Match<TResult>(Func<T, TResult> onSuccess, Func<ImmutableArray<Error>, TResult> onError)
+        where TResult : notnull
+    {
+        ArgumentNullException.ThrowIfNull(onSuccess);
+        ArgumentNullException.ThrowIfNull(onError);
+        return MatchCore(onSuccess, onError);
+    }
+
+    /// <summary>Inhabitant implementation of <see cref="Match"/>. Delegates arrive non-null; the public wrapper guards them.</summary>
+    private protected abstract TResult MatchCore<TResult>(Func<T, TResult> onSuccess, Func<ImmutableArray<Error>, TResult> onError)
         where TResult : notnull;
 
     /// <summary>
     /// Functor map. Transforms the success value with <paramref name="fn"/> and passes a failure through unchanged.
     /// </summary>
     /// <returns>A success holding the mapped value, or the original failure unchanged.</returns>
-    public abstract Result<TResult> Map<TResult>(Func<T, TResult> fn)
+    /// <exception cref="ArgumentNullException"><paramref name="fn"/> is <see langword="null"/>.</exception>
+    public Result<TResult> Map<TResult>(Func<T, TResult> fn)
+        where TResult : notnull
+    {
+        ArgumentNullException.ThrowIfNull(fn);
+        return MapCore(fn);
+    }
+
+    /// <summary>Inhabitant implementation of <see cref="Map"/>. The delegate arrives non-null; the public wrapper guards it.</summary>
+    private protected abstract Result<TResult> MapCore<TResult>(Func<T, TResult> fn)
         where TResult : notnull;
 
     /// <summary>
     /// Monadic bind. Chains a result-returning function after a successful result and short-circuits on failure.
     /// </summary>
     /// <returns>The result of <paramref name="fn"/> applied to the success value, or the original failure unchanged.</returns>
-    public abstract Result<TResult> Bind<TResult>(Func<T, Result<TResult>> fn)
+    /// <exception cref="ArgumentNullException"><paramref name="fn"/> is <see langword="null"/>.</exception>
+    public Result<TResult> Bind<TResult>(Func<T, Result<TResult>> fn)
+        where TResult : notnull
+    {
+        ArgumentNullException.ThrowIfNull(fn);
+        return BindCore(fn);
+    }
+
+    /// <summary>Inhabitant implementation of <see cref="Bind"/>. The delegate arrives non-null; the public wrapper guards it.</summary>
+    private protected abstract Result<TResult> BindCore<TResult>(Func<T, Result<TResult>> fn)
         where TResult : notnull;
 
     /// <summary>
@@ -116,22 +146,41 @@ public abstract record Result<T>
     /// <see cref="System.Threading.CancellationToken"/>, so a caller needing cancellation passes a lambda that captures the token from its enclosing scope.
     /// </summary>
     /// <returns>A value task for the result of <paramref name="fn"/> applied to the success value, or the original failure unchanged.</returns>
-    public abstract ValueTask<Result<TResult>> BindAsync<TResult>(Func<T, ValueTask<Result<TResult>>> fn)
+    /// <exception cref="ArgumentNullException"><paramref name="fn"/> is <see langword="null"/>. Thrown synchronously at the call site — a usage error does
+    /// not wait to be awaited.</exception>
+    public ValueTask<Result<TResult>> BindAsync<TResult>(Func<T, ValueTask<Result<TResult>>> fn)
+        where TResult : notnull
+    {
+        ArgumentNullException.ThrowIfNull(fn);
+        return BindAsyncCore(fn);
+    }
+
+    /// <summary>Inhabitant implementation of <see cref="BindAsync"/>. The delegate arrives non-null; the public wrapper guards it.</summary>
+    private protected abstract ValueTask<Result<TResult>> BindAsyncCore<TResult>(Func<T, ValueTask<Result<TResult>>> fn)
         where TResult : notnull;
 
     /// <summary>
     /// LINQ-named alias of <see cref="Map"/>. Transforms the success value with <paramref name="selector"/> and passes a failure through unchanged.
     /// </summary>
     /// <returns>A success holding the mapped value, or the original failure unchanged.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="selector"/> is <see langword="null"/>. Guarded here rather than in <see cref="Map"/> so the
+    /// exception names the parameter the caller passed.</exception>
     public Result<TResult> Select<TResult>(Func<T, TResult> selector)
         where TResult : notnull
-        => Map(selector);
+    {
+        ArgumentNullException.ThrowIfNull(selector);
+        return MapCore(selector);
+    }
 
     /// <summary>LINQ-named alias of <see cref="Bind"/>. Chains a result-returning function after a successful result and short-circuits on failure.</summary>
     /// <returns>The result of <paramref name="selector"/> applied to the success value, or the original failure unchanged.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="selector"/> is <see langword="null"/>.</exception>
     public Result<TResult> SelectMany<TResult>(Func<T, Result<TResult>> selector)
         where TResult : notnull
-        => Bind(selector);
+    {
+        ArgumentNullException.ThrowIfNull(selector);
+        return BindCore(selector);
+    }
 
     /// <summary>
     /// Monadic bind with projection, the shape the compiler binds for chained <c>from</c> clauses in query syntax. It is equivalent to
@@ -139,12 +188,17 @@ public abstract record Result<T>
     /// Bind is sequential; use <c>Result.Apply</c> when independent failures should all be reported.
     /// </summary>
     /// <returns>The projected success value, or the first failure encountered.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="selector"/> or <paramref name="resultSelector"/> is <see langword="null"/>.</exception>
     public Result<TResult> SelectMany<TIntermediate, TResult>(
         Func<T, Result<TIntermediate>> selector,
         Func<T, TIntermediate, TResult> resultSelector)
         where TIntermediate : notnull
         where TResult : notnull
-        => Bind(x => selector(x).Map(y => resultSelector(x, y)));
+    {
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(resultSelector);
+        return BindCore(x => selector(x).Map(y => resultSelector(x, y)));
+    }
 }
 
 /// <summary>
