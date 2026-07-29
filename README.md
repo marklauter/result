@@ -1,4 +1,14 @@
+[![.NET Tests](https://github.com/marklauter/result/actions/workflows/dotnet.tests.yml/badge.svg)](https://github.com/marklauter/result/actions/workflows/dotnet.tests.yml)
+[![.NET Publish](https://github.com/marklauter/result/actions/workflows/dotnet.publish.yml/badge.svg)](https://github.com/marklauter/result/actions/workflows/dotnet.publish.yml)
+[![NuGet](https://img.shields.io/nuget/v/MSL.Results?logo=nuget)](https://www.nuget.org/packages/MSL.Results/)
+[![.NET](https://img.shields.io/badge/.NET-10.0-blue)](https://dotnet.microsoft.com/en-us/download/dotnet/10.0/)
+
+![Results](https://raw.githubusercontent.com/marklauter/result/main/images/results-logo.png "Results")
+![MSL Armory](https://raw.githubusercontent.com/marklauter/result/main/images/msl.armory.small.png "MSL Armory")
+
 # Results
+
+*Another weapon from the MSL Armory*
 
 A `Result<T>` type for .NET that models domain failure as a value instead of an exception.
 
@@ -10,11 +20,50 @@ Results targets .NET 10.
 
 ## Why
 
-An operation that can fail in a way your domain cares about — input that doesn't parse, a withdrawal that exceeds the balance, a lookup that finds nothing — isn't exceptional. It's an outcome. Return it.
+An operation that can fail in a way your domain cares about isn't exceptional. It's an outcome. Return it.
 
 `Result<T>` is a closed hierarchy: `Success` and `Failure` are its only inhabitants, and the base constructor is `private protected`, so nothing outside the assembly can join them. The combinators are abstract on the base and implemented on each inhabitant, which makes exhaustiveness a compile-time fact. Add an inhabitant and the code stops compiling, whereas a `switch` expression would only warn.
 
-Exceptions still have a job. Keep them for the substrate failing or the code being wrong — a dropped connection, a missing connection string, a null argument from a caller you don't control.
+## Result or exception?
+
+Both channels exist in .NET, and the usual advice doesn't separate them.
+
+- *Is it expected?* Everything is expected to someone. `HttpClient` throws on socket errors, and anyone who has used the internet expects socket errors.
+- *Can the caller branch on it?* You can always branch. A `catch` filter branches on an exception as readily as `Match` branches on a `Result`.
+- *Can the caller recover?* `HttpClient` throws, and the caller can still retry, fall back, or degrade.
+
+All three test the caller's options, which is why they produce case-by-case argument that never settles. The line is structural.
+
+Model the operation as a total function and ask where the outcome lives.
+
+**In the codomain** — an outcome the operation's own logic produces. Input that doesn't parse, a withdrawal exceeding the balance, a lookup finding nothing. Return it as a `Result<T>`. The function stays total: every input maps to a modeled outcome, and nothing escapes out of band.
+
+**Outside it** — a failure in the machinery the operation assumes. Memory, network, disk, configuration, or a caller handing you a null. Throw. The event was never part of the mapping, so an exception is the honest signal.
+
+An exception is out of band and lies about totality. A `Result` is in band and lets the compiler force exhaustive handling. That is why modeled outcomes belong in the return type.
+
+### Where a `Result` comes from
+
+Only two places.
+
+1. **At the boundary**, parsing external input into a domain type. That is the one place invalid states are still representable, so the one place a domain invariant can fail to hold.
+2. **At a business branch point**, expressed as a sum type. `Withdraw(amount)` returning success or `InsufficientFunds` is a decision, not an invalid state. The function is still total.
+
+Make invalid states unrepresentable and the interior comes out total for free. A value that exists is valid by construction, so a pure domain function over valid values cannot produce an invariant violation. The interior never mints an error and never throws.
+
+### What is left to throw
+
+Three things.
+
+- **Transient infrastructure faults**, effectively every timeout and partition. You can never know a database is down, only decide to stop waiting. That is what keeps it out of the codomain. Retry, and propagate when the budget runs out.
+- **Permanent infrastructure faults**, meaning configuration. The missing connection string, the IAM error on a resource you need. Fail fast and loud at startup.
+- **Bugs**, meaning a violated precondition, API misuse, or a broken assertion. You fix these rather than handle them.
+
+Cancellation is thrown, never returned. `OperationCanceledException` is cooperative control flow, not an outcome of the operation.
+
+Adapters below the domain are allowed to throw, and they translate at the edge. A query's row-not-found becomes a `NotFound` error; a dropped connection stays an exception and propagates. The pure core never sees a raw `SqlException`. This is also why `HttpClient` throwing is correct rather than a counterexample: from your layer it is infrastructure, and a socket fault is its substrate failing. Domain is relative to layer, so the rule reapplies at each one — every layer's core is total, and every layer's adapters throw.
+
+Scott Wlaschin's [*Domain Modeling Made Functional*](https://www.amazon.com/dp/B0CY2L7Y1K) is the book-length version of this argument. It builds Eric Evans's domain-driven design in F# out of sum types, total functions, and errors carried as values.
 
 ## Compose the happy path
 
@@ -112,6 +161,5 @@ Construction goes through the factories, which reject a null, empty, or whitespa
 
 A `Failure` always carries at least one error: the factories enforce it, and the inhabitant's constructor is internal, so there's no way around them. `Failure` equality is structural over the errors, element-wise and order-sensitive.
 
-## License
-
-MIT. See [LICENSE](LICENSE).
+---
+[Repository](https://github.com/marklauter/result) · [NuGet](https://www.nuget.org/packages/MSL.Results/) · [MIT License](https://github.com/marklauter/result/blob/main/LICENSE) · [Report an issue](https://github.com/marklauter/result/issues)

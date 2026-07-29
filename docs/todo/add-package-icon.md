@@ -1,31 +1,49 @@
 ---
-title: Add images/result.png and unblock dotnet pack
-summary: Results.csproj declares PackageIcon result.png but the repo has no images/ directory, so packing fails.
-tags: [todo, packaging, nuget, blocker]
+title: Replace the placeholder package icon
+summary: Both logo files are generated placeholders with PLACEHOLDER on their face; the csproj and the README are already wired to them and need real artwork.
+tags: [todo, packaging, nuget, branding]
 created: 2026-07-28
-priority: high
+priority: medium
 effort: low
 status: open
 ---
 
-`src/Results/Results.csproj` sets `<PackageIcon>result.png</PackageIcon>` and
-packs `..\..\images\result.png`. The file does not exist yet.
+The logo is a placeholder: a slate tile with a dashed border reading `R<T>` /
+`PLACEHOLDER` / `replace me`. It ships in the package, so it renders on the
+nuget.org listing page and in the README. Replace it before announcing the
+package anywhere.
 
-`dotnet build` is unaffected. `dotnet pack` fails:
+There are two files, following plumber, which uses a separate image for each
+role. pool uses one image for both.
 
+| File | Size | Used by |
+| --- | --- | --- |
+| `images/results-logo.png` | 256x256 | the README header, over HTTP by raw GitHub URL |
+| `images/results-logo.small.png` | 128x128 | the packed NuGet icon |
+
+Both are referenced by path, so replacing the files in place is the only step.
+For reference, those paths are:
+
+- `src/Results/Results.csproj` — `<PackageIcon>results-logo.small.png</PackageIcon>`
+  and the `None Include="..\..\images\results-logo.small.png"` pack item. Only
+  the small file is packed, because the README's image resolves over HTTP.
+- `README.md` — the raw GitHub URL above the MSL Armory mark.
+
+Keep the sizes. 128x128 is NuGet's recommended icon size, and 256x256 matches
+`pool.png`, `plumber.comic.small.png`, and `msl.armory.small.png`. The current
+small file is a LANCZOS downscale of the 256. Real artwork should be exported at
+each size rather than resampled.
+
+Verify with `dotnet pack -c Release`, then confirm the icon landed:
+
+```sh
+unzip -l src/Results/bin/Release/MSL.Results.1.0.0.nupkg | grep png
 ```
-NuGet.Build.Tasks.Pack.targets(222,5): error : Could not find a part of the
-path 'D:\projects\result\result\images'.
-```
 
-That means `dotnet.publish.yml` reds on the first release, at the pack step,
-before it ever reaches the nuget.org push.
+Both siblings keep an SVG source next to the PNG: pool has `pool.svg`, plumber
+has `plumber.svg` and `plumber-ideas.svg`. result has no vector source, and
+adding one would match them.
 
-Drop the artwork at `images/result.png`, then re-run `dotnet pack -c Release` to
-confirm. pool keeps three files in `images/`: `pool.png`, `pool.svg`, and the
-shared `msl.armory.small.png`. plumber keeps the same three plus comic and
-sketch variants.
-
-Both reference READMEs embed their artwork by raw GitHub URL, in this repo's case
-`https://raw.githubusercontent.com/marklauter/result/main/images/result.png`.
-Wire that into `README.md` alongside the MSL Armory mark once the files land.
+`images/msl.armory.small.png` is already correct, copied byte-identical from
+pool (md5 `a617544f38dac741bab7eb4b67df89c2`, the same file in plumber). Leave
+it alone.
