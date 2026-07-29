@@ -22,7 +22,8 @@ public abstract record Result<T>
     private protected Result() { }
 
     /// <summary>The successful inhabitant of <see cref="Result{T}"/>.</summary>
-    public sealed record Success(T Value) : Result<T>
+    public sealed record Success(T Value)
+        : Result<T>
     {
         /// <inheritdoc/>
         public override TResult Match<TResult>(Func<T, TResult> onSuccess, Func<ImmutableArray<Error>, TResult> onError) => onSuccess(Value);
@@ -42,7 +43,8 @@ public abstract record Result<T>
     /// through the <c>Result.Failure</c> factories that enforce it. Equality is structural over <see cref="Errors"/> (element-wise, order-sensitive), because
     /// <see cref="ImmutableArray{T}"/>'s default record equality would compare the underlying array reference instead.
     /// </summary>
-    public sealed record Failure : Result<T>
+    public sealed record Failure
+        : Result<T>
     {
         /// <summary>The errors carried by this failure; never empty.</summary>
         public ImmutableArray<Error> Errors { get; }
