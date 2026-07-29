@@ -8,20 +8,30 @@ effort: low
 status: open
 ---
 
-`images/results-logo.png` is a stand-in, not artwork. It is a 256x256 slate tile
-with a dashed border reading `R<T>` / `PLACEHOLDER` / `replace me`. It ships in
-the package and renders on the nuget.org listing page and in the README, so it
-needs replacing before the package is announced anywhere.
+The logo is a stand-in, not artwork: a slate tile with a dashed border reading
+`R<T>` / `PLACEHOLDER` / `replace me`. It ships in the package and renders on the
+nuget.org listing page and in the README, so it needs replacing before the
+package is announced anywhere.
 
-Everything is already wired to that filename. Replace the file in place and
-nothing else has to change:
+There are two files, following plumber's split rather than pool's single-file
+approach:
 
-- `src/Results/Results.csproj` — `<PackageIcon>results-logo.png</PackageIcon>`
-  and the `None Include="..\..\images\results-logo.png"` pack item.
+| File | Size | Used by |
+| --- | --- | --- |
+| `images/results-logo.png` | 256x256 | the README header, by raw GitHub URL |
+| `images/results-logo.small.png` | 128x128 | the packed NuGet icon |
+
+Replace both in place and nothing else has to change:
+
+- `src/Results/Results.csproj` — `<PackageIcon>results-logo.small.png</PackageIcon>`
+  and the `None Include="..\..\images\results-logo.small.png"` pack item. Only
+  the small one is packed; the README's image resolves over HTTP.
 - `README.md` — the raw GitHub URL above the MSL Armory mark.
 
-Keep 256x256 RGBA PNG to match the house icons: `pool.png`, `plumber.png`, and
-`msl.armory.small.png` are all that size.
+Keep the sizes. 128x128 is NuGet's recommended icon size, and 256x256 matches
+`pool.png`, `plumber.comic.small.png`, and `msl.armory.small.png`. The current
+small file is a LANCZOS downscale of the 256; real artwork should be exported at
+each size rather than resampled.
 
 Verify with `dotnet pack -c Release`, then confirm the icon is in the package:
 

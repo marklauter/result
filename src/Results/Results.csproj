@@ -17,11 +17,12 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
-		<PackageIcon>results-logo.png</PackageIcon>
+		<PackageIcon>results-logo.small.png</PackageIcon>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Include="..\..\images\results-logo.png">
+		<!-- The 128x128 variant is the packed icon; images/results-logo.png is the 256x256 the README embeds. -->
+		<None Include="..\..\images\results-logo.small.png">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
