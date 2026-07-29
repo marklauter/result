@@ -28,9 +28,8 @@ against the throw-vs-return rule in `csharp:writing-csharp`: a null element is a
 partiality the types were supposed to remove, so it belongs in the exception
 channel rather than modeled as a domain outcome that a caller's error handler has
 to distinguish from real validation failures. `ErrorCodes.cs` was deleted with
-it. `ErrorType.InvalidOperation` and `Error.InvalidOperation` remain in `src`
-with no production caller, covered only by their `ErrorTests` row — keep or drop
-is a separate decision.
+it, and `ErrorType.InvalidOperation` and `Error.InvalidOperation` were removed
+once the walk-back left them without a library-emitted use.
 
 Eight tests cover the contract, four per method: the null at each of three
 positions asserting the index appears in the message, an unfilled

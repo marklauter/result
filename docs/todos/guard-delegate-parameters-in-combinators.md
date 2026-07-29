@@ -19,9 +19,10 @@ Assert.Throws<ArgumentNullException>(() => Result.Failure<int>(err).Map<string>(
 
 The first fails today with `NullReferenceException`, the wrong exception type.
 The second fails today because nothing is thrown at all. Both go green after the
-fix. Repeat across `Match`, `Bind`, `BindAsync`, `Select`, and both `SelectMany`
-shapes. Keeping the assertions in pairs is what pins the two inhabitants to the
-same behavior.
+fix. Repeat across `Match`, `Bind`, `BindAsync`, `Select`, both `SelectMany`
+shapes, and the `ResultAsync` extensions (`MapAsync`, both `BindAsync` shapes,
+`MatchAsync`), which take the same delegates and are equally unguarded. Keeping
+the assertions in pairs is what pins the two inhabitants to the same behavior.
 
 ## The defect
 
@@ -53,13 +54,13 @@ error-handling attention.
 
 `Result.Apply<T, TResult>` in the same file already does
 `ArgumentNullException.ThrowIfNull` on both of its arguments and documents it.
-The combinator surface does not. Same theme as
-[guard-null-elements-in-sequence-and-apply.md](guard-null-elements-in-sequence-and-apply.md):
-the library guards some public entry points and not others, with no stated rule
-for which.
+The combinator surface does not.
 
-Settling that rule is the real task here. Decide whether every public entry
-point guards its reference parameters, apply it everywhere, and encode it as an
+The rule is settled (2026-07-29): per the throw-vs-return note in
+`csharp:writing-csharp`, a caller defect throws at the boundary it crosses, and
+[guard-null-elements-in-sequence-and-apply.md](guard-null-elements-in-sequence-and-apply.md)
+closed on that channel. What remains here is application — guard every delegate
+parameter, including the `ResultAsync` extensions — and encoding it as an
 ArchUnitNET test so the next combinator cannot omit it.
 
 ## Where the guard goes
@@ -73,7 +74,8 @@ delegating to a protected abstract one, or repeat the guard in all six
 overrides. The first is more code and makes the guard structural. The second is
 easy to forget on the next inhabitant.
 
-`Select` and `SelectMany` are already non-abstract and can be guarded directly.
+`Select` and `SelectMany` are already non-abstract and can be guarded directly,
+as can the static `ResultAsync` extensions.
 
 ## Verify
 

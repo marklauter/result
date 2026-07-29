@@ -1,7 +1,7 @@
 ---
 title: Validate each Error in the Failure factories
 type: todo
-summary: The Result.Failure<T> factories check only the count of errors, never that each Error is initialized, so a default(Error) throws later from inside the caller's error-handling path.
+summary: The Result.Failure<T> factories and Validate check only the count of errors, never that each Error is initialized, so a default(Error) throws later from inside the caller's error-handling path.
 tags: [correctness, invariants, error]
 created: 2026-07-28
 priority: high
@@ -19,14 +19,27 @@ Assert.Throws<ArgumentException>(() => Result.Failure<int>(default(Error)));
 Today this constructs successfully and throws nothing, so the assertion fails.
 
 `ErrorTests` covers the uninitialized-read throw on `Error` itself. The
-factory-level case is missing. Cover all four overloads. The single-`Error` one
-has no validation at all, and the collection overloads need a `default(Error)`
-mixed in among valid ones, the case a length check cannot catch:
+factory-level case is missing. Cover all four overloads and `Result.Validate`.
+The single-`Error` one has no validation at all, and the collection overloads
+need a `default(Error)` mixed in among valid ones, the case a length check
+cannot catch:
 
 ```csharp
 Assert.Throws<ArgumentException>(
     () => Result.Failure<int>(Error.Validation("err.x", "boom"), default));
 ```
+
+`Validate` needs the `true`-condition case pinned, because that is where a
+conditional guard would hide:
+
+```csharp
+Assert.Throws<ArgumentException>(() => Result.Validate(true, default));
+```
+
+The guard is eager — the error is validated whether or not the condition holds.
+A guard that only fires on the false path leaves the defect data-dependent:
+every test and every request that happens to pass its checks sails through, and
+the crash waits for the first failing check in production.
 
 ## The defect
 
@@ -53,7 +66,9 @@ validate only **cardinality**:
 - `Failure<T>(ImmutableArray<Error>)` — checks `errors.IsDefaultOrEmpty`
 - `Failure<T>(IReadOnlyList<Error>)` — null-guards the list, checks `Count == 0`
 
-None checks that the errors themselves are initialized.
+None checks that the errors themselves are initialized. `Result.Validate(bool
+condition, Error error)` is a fifth entry point with the same hole: it accepts
+the error unexamined and builds the `Failure` from it on the false path.
 
 ## Failure mode
 
@@ -84,7 +99,8 @@ zeroed instance with no constructor ever running.
 
 ## What to do
 
-Validate each element in every `Failure<T>` overload. Detecting an uninitialized
+Validate each element in every `Failure<T>` overload and the `Error` parameter
+of `Validate`, eagerly on both paths. Detecting an uninitialized
 `Error` without triggering the throw needs a total predicate on the type, and
 `Error` exposes none. There is no way to ask "am I initialized?" short of
 reading `Code` or `Message` and catching. Adding an internal `IsInitialized` is

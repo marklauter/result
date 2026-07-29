@@ -39,8 +39,9 @@ var errors = ImmutableArray.CreateBuilder<Error>();
 ```
 
 The loop then has no `failed` flag, so `values.Add(success.Value)` keeps running
-for every subsequent success even after the first failure has been recorded. The
-return discards it:
+for every subsequent success even after the first failure has been recorded. As
+of 2026-07-29 the loop also tracks an `index` and throws `ArgumentException` on
+a null element; any rewrite preserves that arm. The return discards the values:
 
 ```csharp
 return errors.Count > 0
@@ -58,9 +59,11 @@ to size the builders when the source is an `ICollection<T>`. The accumulating
 semantics must survive whichever is chosen — `Sequence` reports every error, not
 the first, and that is the documented contract.
 
-Note that [guard-null-elements-in-sequence-and-apply.md](guard-null-elements-in-sequence-and-apply.md)
-rewrites this same loop. Land that one first; it is a correctness fix and this is
-not.
+[guard-null-elements-in-sequence-and-apply.md](guard-null-elements-in-sequence-and-apply.md)
+landed its rewrite of this loop on 2026-07-29, so that ordering constraint is
+discharged. [[add-sequence-overloads-mirroring-failures-set]] presets builder
+capacity in its span overload, which covers part of this item for known-count
+sources; consider landing the two together so the loop is rewritten once.
 
 ## Verify
 
