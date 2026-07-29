@@ -63,6 +63,8 @@ Cancellation is thrown, never returned. `OperationCanceledException` is cooperat
 
 Adapters below the domain are allowed to throw, and they translate at the edge. A query's row-not-found becomes a `NotFound` error; a dropped connection stays an exception and propagates. The pure core never sees a raw `SqlException`. This is also why `HttpClient` throwing is correct rather than a counterexample: from your layer it is infrastructure, and a socket fault is its substrate failing. Domain is relative to layer, so the rule reapplies at each one — every layer's core is total, and every layer's adapters throw.
 
+For the book-length treatment, read Scott Wlaschin's [*Domain Modeling Made Functional*](https://www.amazon.com/dp/B0CY2L7Y1K). It builds Eric Evans's domain-driven design in F# out of sum types, total functions, and errors carried as values. `Result<T>`, the applicative accumulation below, and the parse-at-the-boundary rule above all sit in that tradition.
+
 ## Compose the happy path
 
 `Map` transforms a success and passes a failure through. `Bind` chains another fallible step and short-circuits. `Match` is how you leave the type: `Result<T>` exposes no value of its own, so both paths get handled on the way out.
