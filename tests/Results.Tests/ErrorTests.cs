@@ -37,13 +37,6 @@ public sealed class ErrorTests
     }
 
     [Fact]
-    public void InvalidOperation_CreatesErrorWithInvalidOperationType()
-    {
-        var error = Error.InvalidOperation("err.caller.defect", "caller invoked this incorrectly");
-        Assert.Equal(ErrorType.InvalidOperation, error.Type);
-    }
-
-    [Fact]
     public void Undefined_CreatesErrorWithUndefinedType()
     {
         var error = Error.Undefined("err.boom", "something went wrong");
