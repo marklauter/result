@@ -6,6 +6,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="TngTech.ArchUnitNET" />
+		<PackageReference Include="CsCheck" />
 	</ItemGroup>
 
 	<ItemGroup>

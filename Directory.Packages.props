@@ -22,6 +22,8 @@
 		<PackageVersion Include="xunit.v3.assert" Version="3.2.2" />
 		<PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
 		<PackageVersion Include="TngTech.ArchUnitNET" Version="0.13.3" />
+		<!-- Property-based generators for the algebraic law tests. C#-native, so no FSharp.Core in the test tree. -->
+		<PackageVersion Include="CsCheck" Version="4.7.0" />
 	</ItemGroup>
 
 	<ItemGroup>
