@@ -5,8 +5,18 @@ summary: global.json currently pins 10.0.100 / latestFeature; bump to 10.0.204 a
 tags: [global-json, sdk, house-canon]
 created: 2026-07-28
 priority: medium
-status: open
+status: closed
 ---
+
+## Resolution
+
+Closed 2026-07-29. `global.json` pins `10.0.204` with `rollForward: disable`.
+`dotnet --version` resolves to exactly `10.0.204` locally, and the gate ran
+green under the pin: format clean, build with zero warnings, 156 tests passing.
+CI picks the pin up through the `setup-dotnet` composite action's
+`global-json-file` input, which downloads the exact version rather than relying
+on what the runner image preships. Plumber still carries its copy of this todo;
+this note's "coordinate with plumber" ask remains open on that side.
 
 Carried from plumber, which was scaffolded from the same template and has this
 todo open too.
