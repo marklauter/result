@@ -1,15 +1,16 @@
 ---
 title: Apply the house GitHub repo standard to result
 type: todo
-summary: Catalog of the repo settings, workflows, and Dependabot config that plumber and pool share; result now has everything except the NUGET_API_KEY secret and the deferred code_scanning gate.
+summary: Catalog of the repo settings, workflows, and Dependabot config that plumber, pool, and dynamodblite share; result matches all of them.
 tags: [github, repo-standard, ci, house-canon]
 created: 2026-07-28
 priority: medium
-status: open
+status: closed
 ---
 
-Bring `marklauter/result` in line with `marklauter/plumber` and
-`marklauter/pool`, the two reference repos for the house standard.
+Bring `marklauter/result` in line with `marklauter/plumber`,
+`marklauter/pool`, and `marklauter/dynamodblite`, the reference repos for the
+house standard.
 
 ## Done
 
@@ -55,19 +56,28 @@ github-actions ecosystems at `directory: "/"`.
 **`.gitattributes`** — result had none; ported from pool (LF normalization,
 CRLF for `.cmd`/`.bat`). The tests workflow path filter references it.
 
-## Outstanding
+## Resolution
 
-**`NUGET_API_KEY`** — repository Actions secret, consumed by
-`dotnet.publish.yml`. `gh api repos/marklauter/result/actions/secrets` returns
-an empty list, so the publish job will fail at the push step on the first
-release. Add it before tagging.
+Closed 2026-07-28. `result` matches `plumber`, `pool`, and `dynamodblite` on
+every axis checked through the GitHub API:
 
-See also [add-package-icon.md](add-package-icon.md), which breaks `dotnet pack`
-before the publish job reaches that step.
+| Axis | State |
+| --- | --- |
+| Branch ruleset rules | `deletion`, `non_fast_forward`, `required_linear_history`, `pull_request` — identical across all four, one ruleset each |
+| Merge settings | squash, rebase, merge, auto-merge, delete-on-merge all `true`; `COMMIT_OR_PR_TITLE` / `COMMIT_MESSAGES` |
+| Workflows | `codeql.yml`, `dependabot-auto-merge.yml`, `dotnet.publish.yml`, `dotnet.tests.yml` |
+| Actions secrets | `NUGET_API_KEY` present |
+| Code scanning | CodeQL analyses landing; result's most recent ran on `main` |
 
-## Deferred
+`NUGET_API_KEY` was the one open item and has since been added, so
+`dotnet.publish.yml` will reach its push step. `dotnet pack` still needs
+[add-package-icon.md](add-package-icon.md) before a release is worth cutting.
 
-The `code_scanning` merge gate (block PRs on high CodeQL findings) is
-deliberately left off until CodeQL has run at least once on this repo — adding
-it first deadlocks merges under an admin-enforced ruleset. Open the
-`scaffold-results` PR, let CodeQL complete, then add the gate.
+The `code_scanning` merge gate this note deferred is not part of the standard it
+was measuring against. None of `plumber`, `pool`, or `dynamodblite` carries that
+rule. The only repo that does is `hoplite`, which is Python, with
+`alerts_threshold: errors` and `security_alerts_threshold: high_or_higher` on
+tool `CodeQL`. Adopting it for the C# repos is a change to the standard rather
+than a gap against it, and belongs in its own note if it is wanted.
+
+The `scaffold-results` branch named above is merged and deleted.
