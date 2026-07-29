@@ -8,6 +8,30 @@ effort: medium
 status: open
 ---
 
+## Start by pinning the failure
+
+Starts red. Write it before choosing between the options below:
+
+```csharp
+var a = new[] { Result.Success(1), Result.Success(2) }.Sequence();
+var b = new[] { Result.Success(1), Result.Success(2) }.Sequence();
+
+Assert.Equal(a, b);
+Assert.Equal(a.GetHashCode(), b.GetHashCode());
+```
+
+Both assertions fail against the current build.
+
+The assertion holds whichever of the three options is chosen. Only the type of
+`a` and `b` changes, and only if `Sequence`'s return type moves.
+
+`ResultTests` covers `Failure` equality; there is no matching case pinning
+`Success` equality for a collection payload. Add the inequality case (two
+sequences differing in one element) alongside, so the fix cannot be a
+degenerate always-equal `Equals`.
+
+## The defect
+
 `Result<T>.Success` is declared as a positional record with no equality members:
 
 ```csharp
@@ -68,29 +92,6 @@ comparison. Three options:
 Record the decision before implementing. Consumers come to depend on equality
 semantics, so the choice is hard to reverse. A note under `docs/decisions/`
 fits whichever way it goes.
-
-## Failing test
-
-Starts red:
-
-```csharp
-var a = new[] { Result.Success(1), Result.Success(2) }.Sequence();
-var b = new[] { Result.Success(1), Result.Success(2) }.Sequence();
-
-Assert.Equal(a, b);
-Assert.Equal(a.GetHashCode(), b.GetHashCode());
-```
-
-Both assertions fail against the current build.
-
-The assertion holds whichever of the three options is chosen. Only the type of
-`a` and `b` changes, and only if `Sequence`'s return type moves. Write it first,
-so it can tell you whether an implementation fixed the problem.
-
-`ResultTests` covers `Failure` equality; there is no matching case pinning
-`Success` equality for a collection payload. Add the inequality case (two
-sequences differing in one element) alongside, so the fix cannot be a
-degenerate always-equal `Equals`.
 
 ## Verify
 

@@ -8,6 +8,23 @@ effort: low
 status: open
 ---
 
+## Start by pinning the failure
+
+Starts red. Two assertions per combinator, written before any guard is added:
+
+```csharp
+Assert.Throws<ArgumentNullException>(() => Result.Success(1).Map<string>(null!));
+Assert.Throws<ArgumentNullException>(() => Result.Failure<int>(err).Map<string>(null!));
+```
+
+The first fails today with `NullReferenceException`, the wrong exception type.
+The second fails today because nothing is thrown at all. Both go green after the
+fix. Repeat across `Match`, `Bind`, `BindAsync`, `Select`, and both `SelectMany`
+shapes. Keeping the assertions in pairs is what pins the two inhabitants to the
+same behavior.
+
+## The defect
+
 `Match`, `Map`, `Bind`, `BindAsync`, `Select`, and both `SelectMany` shapes take
 delegate parameters and none of them is null-checked.
 
@@ -57,21 +74,6 @@ overrides. The first is more code and makes the guard structural. The second is
 easy to forget on the next inhabitant.
 
 `Select` and `SelectMany` are already non-abstract and can be guarded directly.
-
-## Failing test
-
-Starts red. Two assertions per combinator:
-
-```csharp
-Assert.Throws<ArgumentNullException>(() => Result.Success(1).Map<string>(null!));
-Assert.Throws<ArgumentNullException>(() => Result.Failure<int>(err).Map<string>(null!));
-```
-
-The first fails today with `NullReferenceException`, the wrong exception type.
-The second fails today because nothing is thrown at all. Both go green after the
-fix. Repeat across `Match`, `Bind`, `BindAsync`, `Select`, and both `SelectMany`
-shapes. Keeping the assertions in pairs is what pins the two inhabitants to the
-same behavior.
 
 ## Verify
 

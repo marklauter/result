@@ -8,6 +8,27 @@ effort: low
 status: open
 ---
 
+## Start by pinning the failure
+
+Starts red. Write it before touching `Result<T>.Failure`:
+
+```csharp
+var s = Result.Failure<int>(Error.Validation("err.x", "boom")).ToString();
+Assert.Contains("err.x", s, StringComparison.Ordinal);
+Assert.Contains("boom", s, StringComparison.Ordinal);
+```
+
+Fails today (the string contains neither), passes after the override.
+
+Assert containment of the codes and messages, not the exact rendered string.
+The `csharp:writing-csharp` rule against testing outside the contract applies
+here: pinning exact `ToString` wording couples the suite to a format that is not
+part of the promise, so a later formatting tweak fails a test for no behavioral
+reason. The contract should promise that the codes and messages are present, and
+that is what the test should check.
+
+## The defect
+
 `Result<T>.Failure` hand-writes `Equals` and `GetHashCode` to fix
 `ImmutableArray`'s reference semantics, but leaves `ToString` synthesized. The
 record's generated `PrintMembers` prints `Errors` via
@@ -52,25 +73,6 @@ record shape rather than replacing it.
 failure is the same trap described in
 [validate-error-in-failure-factories.md](validate-error-in-failure-factories.md).
 Either land that todo first, or make the formatting defensive.
-
-## Failing test
-
-Starts red.
-
-```csharp
-var s = Result.Failure<int>(Error.Validation("err.x", "boom")).ToString();
-Assert.Contains("err.x", s, StringComparison.Ordinal);
-Assert.Contains("boom", s, StringComparison.Ordinal);
-```
-
-Fails today (the string contains neither), passes after the override.
-
-Assert containment of the codes and messages, not the exact rendered string.
-The `csharp:writing-csharp` rule against testing outside the contract applies
-here: pinning exact `ToString` wording couples the suite to a format that is not
-part of the promise, so a later formatting tweak fails a test for no behavioral
-reason. The contract should promise that the codes and messages are present, and
-that is what the test should check.
 
 ## Verify
 

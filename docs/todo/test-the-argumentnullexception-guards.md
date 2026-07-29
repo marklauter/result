@@ -8,6 +8,30 @@ effort: low
 status: open
 ---
 
+## Start by pinning the behavior
+
+**This one does not start red**, and it is the only todo from the review where
+that is true. There is no defect to reproduce; the guards already behave
+correctly, so
+
+```csharp
+Assert.Throws<ArgumentNullException>(() => Result.Failure<int>((IReadOnlyList<Error>)null!));
+```
+
+passes on first run. It buys regression protection: a silent deletion of the
+guards becomes a failing build.
+
+Cover all four sites: the `IReadOnlyList` failure factory, both parameters of
+the binary `Apply`, and `Sequence`. Assert the `ParamName` so the test also pins
+*which* argument was rejected.
+
+Related: [guard-null-elements-in-sequence-and-apply.md](guard-null-elements-in-sequence-and-apply.md)
+and [guard-delegate-parameters-in-combinators.md](guard-delegate-parameters-in-combinators.md)
+both add new guards. If either lands first, fold its tests in here so all the
+null-contract cases live together.
+
+## The gap
+
 Three public entry points guard a reference parameter with
 `ArgumentNullException.ThrowIfNull` and document it with an `<exception>` tag:
 
@@ -50,27 +74,6 @@ and the request fails unhandled.
 `ResultTests` covers the empty-collection case for every `Failure<T>` overload.
 The null case for the same factories is missing. The pattern was established and
 then applied to only one of its two halves.
-
-## Failing test
-
-**Does not start red.** There is no defect to reproduce; the guards already
-behave correctly, so
-
-```csharp
-Assert.Throws<ArgumentNullException>(() => Result.Failure<int>((IReadOnlyList<Error>)null!));
-```
-
-passes on first run. It buys regression protection: a silent deletion of the
-guards becomes a failing build.
-
-Cover all four sites: the `IReadOnlyList` failure factory, both parameters of
-the binary `Apply`, and `Sequence`. Assert the `ParamName` so the test also pins
-*which* argument was rejected.
-
-Related: [guard-null-elements-in-sequence-and-apply.md](guard-null-elements-in-sequence-and-apply.md)
-and [guard-delegate-parameters-in-combinators.md](guard-delegate-parameters-in-combinators.md)
-both add new guards. If either lands first, fold its tests in here so all the
-null-contract cases live together.
 
 ## Verify
 

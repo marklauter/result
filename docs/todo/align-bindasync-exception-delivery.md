@@ -8,6 +8,31 @@ effort: medium
 status: open
 ---
 
+## Start by pinning the failure
+
+Starts red, and the assertion depends on which option below is chosen. For the
+uniform-delivery options:
+
+```csharp
+var pending = Result.Success(1).BindAsync<int>(_ => throw new InvalidOperationException());
+await Assert.ThrowsAsync<InvalidOperationException>(async () => await pending);
+```
+
+Today this never reaches the assertion. The exception is thrown while
+*constructing* `pending`, so the test fails on the first line. After the fix it
+goes green. That first-line failure is the defect itself, which makes the test a
+faithful reproduction.
+
+The documentation-only option inverts the test: assert that `BindAsync` does
+throw synchronously. That version is green on day one and pins current behavior
+rather than proving a fix. Note in the commit which of the two the test is
+doing.
+
+`ResultAsyncTests` should get the mirror case for the extension overload, so the
+pair of behaviors is pinned together.
+
+## The defect
+
 `Result<T>.Success.BindAsync` is a direct passthrough from a **non-async**
 method:
 
@@ -66,29 +91,6 @@ Whatever is chosen, `Failure.BindAsync` (which returns
 `ValueTask.FromResult(...)` and never invokes `fn`) means the behavior also
 differs by inhabitant, the same theme as
 [guard-delegate-parameters-in-combinators.md](guard-delegate-parameters-in-combinators.md).
-
-## Failing test
-
-Starts red, and the assertion depends on which option is chosen. For the
-uniform-delivery options:
-
-```csharp
-var pending = Result.Success(1).BindAsync<int>(_ => throw new InvalidOperationException());
-await Assert.ThrowsAsync<InvalidOperationException>(async () => await pending);
-```
-
-Today this never reaches the assertion. The exception is thrown while
-*constructing* `pending`, so the test fails on the first line. After the fix it
-goes green. That first-line failure is the defect itself, which makes the test a
-faithful reproduction.
-
-The documentation-only option inverts the test: assert that `BindAsync` does
-throw synchronously. That version is green on day one and pins current behavior
-rather than proving a fix. Note in the commit which of the two the test is
-doing.
-
-`ResultAsyncTests` should get the mirror case for the extension overload, so the
-pair of behaviors is pinned together.
 
 ## Verify
 

@@ -8,11 +8,36 @@ effort: low
 status: open
 ---
 
+## Start by pinning the failure
+
+Both start red. Write these before touching `src/Results`:
+
+```csharp
+// ResultSequenceTests — today returns a Success carrying one element
+Assert.Throws<ArgumentException>(
+    () => new Result<int>[] { Result.Success(1), null! }.Sequence());
+
+// ApplyUnitTests — today returns Success(Unit.Value)
+Assert.Throws<ArgumentException>(
+    () => Result.Apply(Result.Success(Unit.Value), null!));
+```
+
+Swap the expected exception if the returned-value channel is chosen instead.
+Either way the current build reports success and the test says it must not.
+
+Add a null element in first, middle, and last position. Then add one to an
+otherwise all-success batch, the shape that returns a false success rather than
+merely losing data.
+
+Related: [test-the-argumentnullexception-guards.md](test-the-argumentnullexception-guards.md)
+covers the guards that already exist and are untested; those do not start red.
+
+## The defect
+
 Two methods walk a collection of results and classify each element with `is`
 type patterns. A `null` element matches neither pattern, and neither loop has a
-final `else`, so the null is silently skipped. Both then report success.
-
-Both admit invalid input and return a success.
+final `else`, so the null is silently skipped. Both admit invalid input and
+return a success.
 
 ## `ResultSequence.Sequence<T>`
 
@@ -88,30 +113,6 @@ which is a separate defect.
 
 Whichever channel is chosen, apply it identically in both methods and document
 it with an `<exception>` tag matching the binary `Apply`'s.
-
-## Failing test
-
-Both start red. Against the current build:
-
-```csharp
-// ResultSequenceTests — today returns a Success carrying one element
-Assert.Throws<ArgumentException>(
-    () => new Result<int>[] { Result.Success(1), null! }.Sequence());
-
-// ApplyUnitTests — today returns Success(Unit.Value)
-Assert.Throws<ArgumentException>(
-    () => Result.Apply(Result.Success(Unit.Value), null!));
-```
-
-Swap the expected exception if the returned-value channel is chosen instead.
-Either way the current build reports success and the test says it must not.
-
-Add a null element in first, middle, and last position. Then add one to an
-otherwise all-success batch, the shape that returns a false success rather than
-merely losing data.
-
-Related: [test-the-argumentnullexception-guards.md](test-the-argumentnullexception-guards.md)
-covers the guards that already exist and are untested; those do not start red.
 
 ## Verify
 

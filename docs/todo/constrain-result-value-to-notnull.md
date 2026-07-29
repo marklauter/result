@@ -8,6 +8,36 @@ effort: medium
 status: open
 ---
 
+## Start by pinning the failure
+
+**Not a behavioral test.** A generic constraint is a compile-time fact, so the
+direct reproduction cannot be written as a normal test: after the fix,
+`Result.Success<string?>(null)` stops compiling, which means the test source
+would have to be deleted to make the build green. A test that must be removed to
+pass is not a regression gate.
+
+The workable form is a metadata assertion, which does start red. Write it first:
+
+```csharp
+var t = typeof(Result<>).GetGenericArguments()[0];
+// notnull is encoded as [Nullable(1)] on the generic parameter
+Assert.Contains(
+    t.GetCustomAttributesData(),
+    a => a.AttributeType.Name == "NullableAttribute");
+```
+
+Red today (the attribute is absent), green after the constraint is added. Assert
+it across every generic entry point listed under Scope of the change, not just
+`Result<>`, so a partial application of the constraint fails.
+
+Put it in `tests/Results.Tests/Architecture` as an ArchUnitNET test. Generalized
+to "every public generic in the assembly constrains its success type", it also
+catches the next generic someone adds. Per the `csharp:writing-csharp` rule, the
+first instance of a pattern carries its architecture test in the same change
+set.
+
+## The defect
+
 `Result<T>` declares no generic constraint:
 
 ```csharp
@@ -67,34 +97,6 @@ Expect fallout in the test projects where nullable types are used casually.
 This does **not** fix the null-*element* hole in `Sequence` and the variadic
 `Apply`. Those take `Result<T>` references, not `T` values. That is
 [guard-null-elements-in-sequence-and-apply.md](guard-null-elements-in-sequence-and-apply.md).
-
-## Failing test
-
-**Not a behavioral test.** A generic constraint is a compile-time fact, so the
-direct reproduction cannot be written as a normal test: after the fix,
-`Result.Success<string?>(null)` stops compiling, which means the test source
-would have to be deleted to make the build green. A test that must be removed to
-pass is not a regression gate.
-
-The workable form is a metadata assertion, which does start red:
-
-```csharp
-var t = typeof(Result<>).GetGenericArguments()[0];
-// notnull is encoded as [Nullable(1)] on the generic parameter
-Assert.Contains(
-    t.GetCustomAttributesData(),
-    a => a.AttributeType.Name == "NullableAttribute");
-```
-
-Red today (the attribute is absent), green after the constraint is added. Assert
-it across every generic entry point listed above, not just `Result<>`, so a
-partial application of the constraint fails.
-
-Put it in `tests/Results.Tests/Architecture` as an ArchUnitNET test. Generalized
-to "every public generic in the assembly constrains its success type", it also
-catches the next generic someone adds. Per the `csharp:writing-csharp` rule, the
-first instance of a pattern carries its architecture test in the same change
-set.
 
 ## Verify
 

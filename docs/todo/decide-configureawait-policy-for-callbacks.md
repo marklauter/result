@@ -8,6 +8,30 @@ effort: medium
 status: open
 ---
 
+## Start by pinning the failure
+
+**Settle the decision below before writing this test**, because the test locks
+the answer in. It starts red only against the "drop ConfigureAwait" option, and
+it needs a harness:
+
+```csharp
+// install a custom SynchronizationContext, then assert inside the callback:
+await pending.MatchAsync(
+    v => { Assert.Same(installedContext, SynchronizationContext.Current); return v; },
+    e => 0);
+```
+
+Today `SynchronizationContext.Current` is null inside the callback, so the
+assertion fails. After dropping `ConfigureAwait(false)` it passes.
+
+Two cautions. The test double has to implement `Post` and `Send` correctly, and
+thread-affinity tests go flaky when that implementation is wrong. The
+`csharp:writing-csharp` position is that a flaky test is a defect, to be fixed on
+discovery. Under the documentation-only option there is nothing to test at all:
+the behavior is already correct and the change is prose.
+
+## The defect
+
 Every method in `ResultAsync` awaits its receiver with `ConfigureAwait(false)`
 and then invokes a caller-supplied delegate in the continuation. `MatchAsync` is
 the clearest case, because its callbacks are the terminal step of a chain:
@@ -61,30 +85,8 @@ Options, in increasing cost:
   caller expectations, costs the context capture on every await, and is the
   wrong default for server-side consumers.
 
-Settle this before writing the test, because the test locks the answer in.
 Record the outcome under `docs/decisions/`. It is a public-contract choice and
 awkward to reverse.
-
-## Failing test
-
-Starts red only against the "drop ConfigureAwait" option, and it needs a
-harness:
-
-```csharp
-// install a custom SynchronizationContext, then assert inside the callback:
-await pending.MatchAsync(
-    v => { Assert.Same(installedContext, SynchronizationContext.Current); return v; },
-    e => 0);
-```
-
-Today `SynchronizationContext.Current` is null inside the callback, so the
-assertion fails. After dropping `ConfigureAwait(false)` it passes.
-
-Two cautions. The test double has to implement `Post` and `Send` correctly, and
-thread-affinity tests go flaky when that implementation is wrong.
-The `csharp:writing-csharp` position is that a flaky test is a defect, to be
-fixed on discovery. Under the documentation-only option there is nothing to test
-at all: the behavior is already correct and the change is prose.
 
 ## Verify
 

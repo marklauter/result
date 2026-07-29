@@ -8,6 +8,28 @@ effort: low
 status: open
 ---
 
+## Start by pinning the failure
+
+Starts red. Write it before adding any validation:
+
+```csharp
+Assert.Throws<ArgumentException>(() => Result.Failure<int>(default(Error)));
+```
+
+Today this constructs successfully and throws nothing, so the assertion fails.
+
+`ErrorTests` covers the uninitialized-read throw on `Error` itself. The
+factory-level case is missing. Cover all four overloads. The single-`Error` one
+has no validation at all, and the collection overloads need a `default(Error)`
+mixed in among valid ones, the case a length check cannot catch:
+
+```csharp
+Assert.Throws<ArgumentException>(
+    () => Result.Failure<int>(Error.Validation("err.x", "boom"), default));
+```
+
+## The defect
+
 `Error` is a `readonly record struct` whose `Code` and `Message` properties throw
 `InvalidOperationException` when read on an uninitialized instance:
 
@@ -77,26 +99,6 @@ Per the throw-vs-return rule in `csharp:writing-csharp`, a `default(Error)`
 reaching a factory is a caller bug, so `ArgumentException` is the right channel,
 consistent with the existing empty-collection guards in the same methods. Add
 matching `<exception>` tags.
-
-## Failing test
-
-Starts red:
-
-```csharp
-Assert.Throws<ArgumentException>(() => Result.Failure<int>(default(Error)));
-```
-
-Today this constructs successfully and throws nothing, so the assertion fails.
-
-`ErrorTests` covers the uninitialized-read throw on `Error` itself. The
-factory-level case is missing. Cover all four overloads. The single-`Error` one
-has no validation at all, and the collection overloads need a `default(Error)`
-mixed in among valid ones, the case a length check cannot catch:
-
-```csharp
-Assert.Throws<ArgumentException>(
-    () => Result.Failure<int>(Error.Validation("err.x", "boom"), default));
-```
 
 ## Verify
 
