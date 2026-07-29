@@ -22,7 +22,4 @@ public enum ErrorType
 
     /// <summary>Operation would violate a uniqueness or version invariant.</summary>
     Conflict,
-
-    /// <summary>The caller invoked an operation incorrectly — a defect in the calling code surfaced as a value, not a domain outcome.</summary>
-    InvalidOperation,
 }
