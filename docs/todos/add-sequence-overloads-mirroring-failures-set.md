@@ -5,9 +5,36 @@ summary: Sequence takes only IEnumerable while Failure has a span and an Immutab
 tags: [api-surface, efficiency]
 created: 2026-07-29
 priority: low
-status: open
+status: closed
 relates-to: "[[avoid-discarded-builder-work-in-sequence]]"
 ---
+
+## Resolution
+
+Closed 2026-07-29. Both overloads landed in `ResultSequence.cs`, shaped on the
+variadic `Result.Apply` rather than on `Failure` directly, because `Apply` is
+the existing two-pass precedent: pass one counts failures and total errors and
+throws the null-element `ArgumentException` before anything allocates; pass two
+fills exactly one builder preset to the exact size and hands it off with
+`MoveToImmutable`. A single failing input's errors array is reused with no copy,
+mirroring `Apply`'s single-failure shortcut. All failure paths construct
+`Result<ImmutableArray<T>>.Failure` directly rather than routing through the
+`Result.Failure` factories, as `Apply` does: every error came out of an
+existing `Failure` inhabitant, so the factory's `Undefined` rescan is
+redundant. The success fill uses a cast, not a pattern match —
+pass one proved every element, and a pattern would leave a dead arm the branch
+ratchet counts.
+
+One deviation from the sketch below: the span overload is not an extension
+method, because CS1104 forbids `this params`; it is called factory-style,
+`ResultSequence.Sequence(a, b, c)`, the same convention as `Result.Failure` and
+`Result.Apply`. That also voids the rebinding worry below — the existing
+array-receiver tests still bind the `IEnumerable` extension, since the span
+overload is not an extension candidate. The `ImmutableArray` overload carries
+`[OverloadResolutionPriority(1)]`, maps `IsDefault` to `ArgumentNullException`,
+and delegates to the span overload. Each overload has its own contract tests in
+`ResultSequenceTests`, including a `Assert.Same` pin on the single-failure
+no-copy reuse.
 
 `ResultSequence.Sequence<T>` has one shape, `this IEnumerable<Result<T>>`, while
 the `Result.Failure<T>` factories offer a `params ReadOnlySpan` and an
