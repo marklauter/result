@@ -30,7 +30,8 @@
 		<IsTestProject>true</IsTestProject>
 		<CollectCoverage>true</CollectCoverage>
 		<CoverletOutputFormat>cobertura</CoverletOutputFormat>
-		<!-- Coverage floor (per-class minimum: every class must clear it, not the assembly average). Verified by the gate in .github/workflows/dotnet.tests.yml: dotnet format (verify-no-changes), then dotnet build and dotnet test in Debug and Release. -->
+		<!-- Coverage floor (per-class minimum: every class must clear it, not the assembly average). Verify with build-gate.sh from the writing-csharp skill; CI runs the same steps in .github/workflows/dotnet.tests.yml. -->
+		<!-- Deviation: the house default is to lock the floor at the measured value and raise only. Measured is 100/100/100; this sits at 95 deliberately. Raise it, never lower. -->
 		<Threshold>95,95,95</Threshold>
 		<ThresholdType>line,branch,method</ThresholdType>
 		<ThresholdStat>minimum</ThresholdStat>
