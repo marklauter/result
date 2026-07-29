@@ -53,7 +53,7 @@ no visible reason.
 `Failure` could hand-write `Equals` because it knows its payload is
 `ImmutableArray<Error>`. `Success` is generic over `T` and cannot special-case
 `ImmutableArray<X>` without either reflection or a type test on every
-comparison. Options worth weighing before writing code:
+comparison. Three options:
 
 - Leave `Success` alone and have `Sequence` return something other than a bare
   `Result<ImmutableArray<T>>` — a wrapper with proper value semantics. Changes
@@ -61,8 +61,8 @@ comparison. Options worth weighing before writing code:
 - Give `Success` a custom `Equals` that detects a payload implementing
   `IStructuralEquatable` and defers to it. Costs a type test per comparison and
   changes equality semantics for every `T`, not just arrays.
-- Document the asymmetry as intended and leave it. Cheapest, but it means the
-  library's own `Sequence` output does not compare by value, which contradicts
+- Document the asymmetry as intended and leave it. Cheapest of the three. The
+  cost is that `Sequence` output does not compare by value, which contradicts
   what a `record`-shaped API leads a caller to expect.
 
 Record the decision before implementing. Consumers come to depend on equality

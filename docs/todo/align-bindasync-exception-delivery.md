@@ -39,8 +39,8 @@ non-async `ValueTask`-returning port or a null dereference in the lambda. The
 throw happens at the `BindAsync` line, **outside** the `try`. The request
 crashes instead of being converted to a failure.
 
-The value-task surface encourages exactly this split-construction-and-await
-shape, so it is the call pattern to expect.
+The value-task surface encourages this split-construction-and-await shape, so
+expect callers to write it.
 
 ## The tension
 
@@ -50,7 +50,7 @@ advertises: "a continuation that completes synchronously — a cache hit, a
 memoized read — allocates nothing". Making the method `async` introduces the
 state machine builder the current shape avoids.
 
-The choice is a real trade:
+Three options:
 
 - Make `Success.BindAsync` `async` — uniform exception delivery, loses the
   zero-allocation passthrough.
@@ -59,8 +59,8 @@ The choice is a real trade:
 - Keep the behavior and **document** it on both `BindAsync` members, so callers
   know the synchronous shape can throw at the call site.
 
-The third is cheapest and may be the right call. The current state is the one to
-reject: the two shapes differ and nothing records it.
+The third is cheapest. The current state is the one to reject: the two shapes
+differ and nothing records it.
 
 Whatever is chosen, `Failure.BindAsync` (which returns
 `ValueTask.FromResult(...)` and never invokes `fn`) means the behavior also

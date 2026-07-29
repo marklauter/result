@@ -1,6 +1,6 @@
 ---
 title: Constrain Result<T> to notnull
-summary: Result<T> has no where T : notnull, so a null-carrying "success" is representable and NREs downstream — and adding the constraint after 1.0 is source-breaking for every consumer.
+summary: Result<T> has no where T : notnull, so a null-carrying "success" is representable and NREs downstream. Adding the constraint after 1.0 is source-breaking for every consumer.
 tags: [todo, correctness, nullability, api-contract, pre-1.0]
 created: 2026-07-28
 priority: high
@@ -26,14 +26,15 @@ Verified: `Result.Success<string?>(null)` constructs a `Result<string?>.Success`
 and `.Match(v => v!.Length, e => -1)` throws `NullReferenceException` on the
 **success** path.
 
-The realistic path in is an adapter wrapping a nullable-oblivious API:
+The null arrives from an adapter wrapping a nullable-oblivious API, an EF
+projection, or a deserializer:
 
 ```csharp
 Result.Success(dict.GetValueOrDefault(key))   // null on miss
 ```
 
-an EF projection, or a deserializer. The result reports success, and the
-downstream `Map`/`Match` handler NREs somewhere far from the construction site.
+The result reports success, and the downstream `Map`/`Match` handler NREs
+somewhere far from the construction site.
 
 The same hole reaches `Result.Apply`: `Result.Success<Func<int,int>>(null!)` is
 constructible, and the success/success arm of the binary `Apply` does
@@ -45,7 +46,8 @@ Adding `where T : notnull` later is a **source-breaking change** for every
 consumer that instantiated `Result<T>` with a nullable `T`. The package is at
 1.0.0 and unannounced (see
 [add-package-icon.md](add-package-icon.md), which notes the package has not been
-announced anywhere yet). This is the cheap moment; after adoption it is not.
+announced anywhere yet). The change costs nothing now and costs every consumer
+a compile error later.
 
 ## Scope of the change
 
@@ -69,7 +71,7 @@ This does **not** fix the null-*element* hole in `Sequence` and the variadic
 ## Failing test
 
 **Not a behavioral test.** A generic constraint is a compile-time fact, so the
-obvious reproduction cannot be written as a normal test: after the fix,
+direct reproduction cannot be written as a normal test: after the fix,
 `Result.Success<string?>(null)` stops compiling, which means the test source
 would have to be deleted to make the build green. A test that must be removed to
 pass is not a regression gate.

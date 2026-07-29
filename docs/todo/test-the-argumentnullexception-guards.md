@@ -31,16 +31,16 @@ branch-coverage threshold in `Directory.Build.props` stays green with these
 paths never executed. The Results module reports 100/100/100 today with zero
 tests for any of them.
 
-That is what makes it worth writing down: the number says covered, and the case
-list says otherwise. The `csharp:writing-csharp` position is that the case list
-is the authority and the report is only a proxy.
+The number says covered and the case list says otherwise. The
+`csharp:writing-csharp` position is that the case list is the authority and the
+report is only a proxy.
 
 ## What goes wrong without them
 
 A future cleanup deletes the guards as "redundant under nullable enable", a
 common refactor in a nullable-enabled library, and the entire suite still
-passes. A caller then passes a null list from a
-deserialized payload and gets `NullReferenceException` out of
+passes. A caller then passes a null list from a deserialized payload and gets
+`NullReferenceException` out of
 `Result.Failure<T>(errors)` instead of the `ArgumentNullException` the
 `<exception>` tag promises. Their `catch (ArgumentException)` no longer matches
 and the request fails unhandled.

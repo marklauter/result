@@ -66,9 +66,12 @@ Validate each element in every `Failure<T>` overload. Detecting an uninitialized
 `Error` without triggering the throw needs a total predicate on the type, and
 `Error` exposes none. There is no way to ask "am I initialized?" short of
 reading `Code` or `Message` and catching. Adding an internal `IsInitialized` is
-part of this work. A `Type`-based check is the alternative, but note that
-`ErrorType.Undefined` is a real category rather than a sentinel for
-uninitialized.
+part of this work.
+
+A `Type`-based check cannot substitute. `ErrorType.Undefined` is `0`, and its
+own doc comment says an uninitialized `default(Error)` "reads as this zero
+value", so the check cannot tell a zeroed struct from a genuine
+`Error.Undefined(...)`.
 
 Per the throw-vs-return rule in `csharp:writing-csharp`, a `default(Error)`
 reaching a factory is a caller bug, so `ArgumentException` is the right channel,

@@ -25,14 +25,14 @@ Every code and message is gone.
 
 ## Failure mode
 
-The obvious thing to do with a value-typed failure is log it:
+A caller logs the failure value directly:
 
 ```csharp
 logger.LogWarning("operation failed: {Result}", result);
 ```
 
 That records the type name and nothing else. The diagnostic that would identify
-*which* validation failed is silently lost. `Success` prints its payload fine
+*which* validation failed is silently lost. `Success` prints its payload
 (`Success { Value = 42 }`), so the loss stays invisible until a real failure
 occurs in production.
 

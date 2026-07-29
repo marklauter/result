@@ -37,8 +37,8 @@ assignment throws:
 > InvalidOperationException: The calling thread cannot access this object
 > because a different thread owns it
 
-The failure path is the expensive one. It runs only when something has already
-gone wrong, which makes it the least-exercised branch in a UI app.
+The error callback runs only when something has already gone wrong, which makes
+it the least-exercised branch in a UI app.
 
 ## The verdict was PLAUSIBLE, not CONFIRMED
 
@@ -51,7 +51,7 @@ Whether this is worth changing depends on whether the library targets UI hosts
 at all. ASP.NET Core has no synchronization context, so server-side consumers
 are unaffected.
 
-Options, roughly in increasing cost:
+Options, in increasing cost:
 
 - **Document it.** Add to the `ResultAsync` class doc that callbacks run without
   the captured context and a UI caller must marshal. Zero code change.
@@ -80,11 +80,11 @@ await pending.MatchAsync(
 Today `SynchronizationContext.Current` is null inside the callback, so the
 assertion fails. After dropping `ConfigureAwait(false)` it passes.
 
-Two cautions. Writing a custom `SynchronizationContext` test double is real work,
-and thread-affinity tests go flaky when the post/send implementation is sloppy.
-The `csharp:writing-csharp` position is that a flaky test is a defect to fix, not
-an inconvenience to tolerate. Under the documentation-only option there is
-nothing to test at all: the behavior is already correct and the change is prose.
+Two cautions. The test double has to implement `Post` and `Send` correctly, and
+thread-affinity tests go flaky when that implementation is wrong.
+The `csharp:writing-csharp` position is that a flaky test is a defect, to be
+fixed on discovery. Under the documentation-only option there is nothing to test
+at all: the behavior is already correct and the change is prose.
 
 ## Verify
 

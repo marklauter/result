@@ -12,8 +12,7 @@ Two methods walk a collection of results and classify each element with `is`
 type patterns. A `null` element matches neither pattern, and neither loop has a
 final `else`, so the null is silently skipped. Both then report success.
 
-This is the highest-severity pair in the review: they admit invalid input and
-return a value that says everything worked.
+Both admit invalid input and return a success.
 
 ## `ResultSequence.Sequence<T>`
 
@@ -34,9 +33,9 @@ Verified: `new Result<int>[]{ Result.Success(1), null! }.Sequence()` returns a
 shorter than the input and has no way to detect it. Indices no longer line up
 with the source collection.
 
-The realistic path in: an adapter that returns `null` for an unmapped case, or a
-pre-sized buffer (`new Result<int>[3]`) that a projection only partly fills. A
-batch parse then writes N-1 rows and reports total success.
+A null reaches the sequence from an adapter that returns `null` for an unmapped
+case, or from a pre-sized buffer (`new Result<int>[3]`) that a projection only
+partly fills. A batch parse then writes N-1 rows and reports total success.
 
 ## `Result.Apply(params ReadOnlySpan<Result<Unit>>)`
 
@@ -52,8 +51,8 @@ the assigned checks all passed, the method falls through to
 
 Verified: `Result.Apply(Result.Success(Unit.Value), null!)` returns a success.
 
-The failure mode is worse than Sequence's, because this overload is the
-validation-accumulation entry point:
+This overload is the validation-accumulation entry point, so the null admits
+unvalidated input rather than dropping data:
 
 ```csharp
 var checks = new Result<Unit>[3];

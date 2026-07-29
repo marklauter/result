@@ -48,13 +48,15 @@ ArchUnitNET test so the next combinator cannot omit it.
 ## Where the guard goes
 
 On the abstract base's public members rather than in each inhabitant, so the
-behavior stops depending on which inhabitant received the call. `Map`, `Bind`,
-`BindAsync`, and `Match` are `abstract`, so guarding them uniformly means either
-converting them to a guarded non-virtual public method delegating to a protected
-abstract one, or repeating the guard in all six overrides. The first is more
-code but makes the guard structural; the second is easy to forget on the next
-inhabitant. `Select` and `SelectMany` are already non-abstract and can be
-guarded directly.
+behavior stops depending on which inhabitant received the call.
+
+`Map`, `Bind`, `BindAsync`, and `Match` are `abstract`, which leaves two ways to
+guard them uniformly. Convert each to a guarded non-virtual public method
+delegating to a protected abstract one, or repeat the guard in all six
+overrides. The first is more code and makes the guard structural. The second is
+easy to forget on the next inhabitant.
+
+`Select` and `SelectMany` are already non-abstract and can be guarded directly.
 
 ## Failing test
 
