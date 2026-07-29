@@ -20,13 +20,48 @@ Results targets .NET 10.
 
 ## Why
 
-An operation that can fail in a way your domain cares about — input that doesn't parse, a withdrawal that exceeds the balance, a lookup that finds nothing — isn't exceptional. It's an outcome. Return it.
+An operation that can fail in a way your domain cares about isn't exceptional. It's an outcome. Return it.
 
 `Result<T>` is a closed hierarchy: `Success` and `Failure` are its only inhabitants, and the base constructor is `private protected`, so nothing outside the assembly can join them. The combinators are abstract on the base and implemented on each inhabitant, which makes exhaustiveness a compile-time fact. Add an inhabitant and the code stops compiling, whereas a `switch` expression would only warn.
 
-Exceptions still have a job. Keep them for the substrate failing or the code being wrong: a dropped connection, a missing connection string, a null argument from a caller you don't control.
+## Result or exception?
 
-The test is structural, not a question about what the caller can do with it. Model the operation as a total function and ask whether the outcome is in its codomain — something the operation's own logic produces — or the machinery it assumes failing. A parse rejecting input is in the codomain. A dropped socket is not, which is why `HttpClient` throwing is correct rather than a counterexample.
+Both channels exist in .NET, and the usual advice doesn't separate them.
+
+- *Is it expected?* Everything is expected to someone. `HttpClient` throws on socket errors, and anyone who has used the internet expects socket errors.
+- *Can the caller branch on it?* You can always branch. A `catch` filter branches on an exception as readily as `Match` branches on a `Result`.
+- *Can the caller recover?* `HttpClient` throws, and the caller can still retry, fall back, or degrade.
+
+Each of those tests the caller's options, which is why they produce case-by-case argument that never settles. The line is in the operation's structure instead.
+
+Model the operation as a total function and ask where the outcome lives.
+
+**In the codomain** — an outcome the operation's own logic produces. Input that doesn't parse, a withdrawal exceeding the balance, a lookup finding nothing. Return it as a `Result<T>`. The function stays total: every input maps to a modeled outcome, and nothing escapes out of band.
+
+**Outside it** — the machinery the operation assumes, failing. Memory, network, disk, configuration, or a caller handing you a null. Throw. The event was never part of the mapping, so an exception is the honest signal.
+
+An exception is out of band and lies about totality. A `Result` is in band and lets the compiler force exhaustive handling. That, rather than any claim that you can't branch on exceptions, is why modeled outcomes belong in the return type.
+
+### Where a `Result` comes from
+
+Only two places.
+
+1. **At the boundary**, parsing external input into a domain type. That is the one place invalid states are still representable, so the one place a domain invariant can fail to hold.
+2. **At a business branch point**, expressed as a sum type. `Withdraw(amount)` returning success or `InsufficientFunds` is a decision, not an invalid state, and the function is still total.
+
+Make invalid states unrepresentable and the interior comes out total for free. A value that exists is valid by construction, so a pure domain function over valid values cannot produce an invariant violation. The interior never mints an error and never throws.
+
+### What is left to throw
+
+Three things.
+
+- **Transient infrastructure faults**, which is effectively every timeout and partition. You can never know a database is down, only decide to stop waiting, so this can't be a modeled outcome. Retry, and propagate when the budget runs out.
+- **Permanent infrastructure faults**, meaning configuration. The missing connection string, the IAM error on a resource you need. Fail fast and loud at startup.
+- **Bugs**: a violated precondition, API misuse, a broken assertion. You fix these rather than handle them.
+
+Cancellation is thrown, never returned. `OperationCanceledException` is cooperative control flow, not an outcome of the operation.
+
+Adapters below the domain are allowed to throw, and they translate at the edge. A query's row-not-found becomes a `NotFound` error; a dropped connection stays an exception and propagates. The pure core never sees a raw `SqlException`. This is also why `HttpClient` throwing is correct rather than a counterexample: from your layer it is infrastructure, and a socket fault is its substrate failing. Domain is relative to layer, and the rule applies per layer.
 
 ## Compose the happy path
 
