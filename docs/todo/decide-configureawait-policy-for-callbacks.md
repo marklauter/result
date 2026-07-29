@@ -1,7 +1,7 @@
 ---
 title: Decide the ConfigureAwait policy for caller-supplied callbacks
 summary: The ResultAsync extensions invoke caller callbacks after ConfigureAwait(false), so a UI caller's terminal MatchAsync runs off the captured context and throws cross-thread.
-tags: [todo, async, api-contract, decision]
+tags: [async, api-contract, decision]
 created: 2026-07-28
 priority: low
 effort: medium

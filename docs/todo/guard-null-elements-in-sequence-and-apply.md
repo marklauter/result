@@ -1,7 +1,7 @@
 ---
 title: Guard null elements in Sequence and the variadic Apply
 summary: Both element loops classify with `is` type patterns and no else, so a null element is silently ignored — Sequence returns a short Success and Apply counts it as a passing check.
-tags: [todo, correctness, null-safety, applicative]
+tags: [correctness, null-safety, applicative]
 created: 2026-07-28
 priority: high
 effort: low

@@ -1,7 +1,7 @@
 ---
 title: Validate each Error in the Failure factories
 summary: The Result.Failure<T> factories check only the count of errors, never that each Error is initialized, so a default(Error) throws later from inside the caller's error-handling path.
-tags: [todo, correctness, invariants, error]
+tags: [correctness, invariants, error]
 created: 2026-07-28
 priority: high
 effort: low

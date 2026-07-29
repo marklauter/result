@@ -1,7 +1,7 @@
 ---
 title: Wrap Error.Code and Error.Message as value types
 summary: Code and Message are bare interchangeable strings, so every factory call can transpose them and still compile, which the writing-csharp rule on wrapping primitives exists to prevent.
-tags: [todo, domain-modeling, primitive-obsession, api-contract, pre-1.0]
+tags: [domain-modeling, primitive-obsession, api-contract, pre-1.0]
 created: 2026-07-28
 priority: medium
 effort: high

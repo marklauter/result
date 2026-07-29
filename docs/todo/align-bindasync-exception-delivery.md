@@ -1,7 +1,7 @@
 ---
 title: Align exception delivery between the two BindAsync shapes
 summary: Success.BindAsync returns fn(Value) from a non-async method, so a pre-await throw escapes synchronously past the caller's try — while the ResultAsync extension of the same name captures it into the returned ValueTask.
-tags: [todo, correctness, async, api-contract]
+tags: [correctness, async, api-contract]
 created: 2026-07-28
 priority: medium
 effort: medium

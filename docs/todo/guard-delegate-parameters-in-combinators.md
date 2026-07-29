@@ -1,7 +1,7 @@
 ---
 title: Guard the delegate parameters on Map, Bind, Match, and Select
 summary: None of the combinators null-check their delegates, and behavior diverges by inhabitant — a null selector NREs on Success and is silently ignored on Failure.
-tags: [todo, correctness, null-safety, api-contract]
+tags: [correctness, null-safety, api-contract]
 created: 2026-07-28
 priority: medium
 effort: low

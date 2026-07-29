@@ -1,7 +1,7 @@
 ---
 title: Assert the no-copy behavior in Failure_ImmutableArrayFactory_StoresArrayDirectly
 summary: The test named StoresArrayDirectly asserts value equality, which a copying implementation also satisfies, so the no-copy promise in the factory's XML doc is unpinned.
-tags: [todo, testing, contract]
+tags: [testing, contract]
 created: 2026-07-28
 priority: low
 effort: low

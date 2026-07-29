@@ -1,7 +1,7 @@
 ---
 title: Override ToString on Result<T>.Failure
 summary: Failure inherits the record-synthesized ToString, which prints ImmutableArray's type name — every error code and message is absent from any log line that formats a failed result.
-tags: [todo, correctness, diagnostics, logging]
+tags: [correctness, diagnostics, logging]
 created: 2026-07-28
 priority: medium
 effort: low

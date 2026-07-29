@@ -1,7 +1,7 @@
 ---
 title: Fix Result<T>.Success equality for ImmutableArray payloads
 summary: Success uses record-synthesized equality, which compares an ImmutableArray payload by reference — the exact hazard Failure hand-writes Equals to avoid, and Sequence returns Result<ImmutableArray<T>>.
-tags: [todo, correctness, equality, value-semantics]
+tags: [correctness, equality, value-semantics]
 created: 2026-07-28
 priority: high
 effort: medium

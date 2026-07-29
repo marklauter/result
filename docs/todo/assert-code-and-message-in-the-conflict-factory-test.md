@@ -1,7 +1,7 @@
 ---
 title: Assert Code and Message in the Error.Conflict factory test
 summary: Conflict_CreatesErrorWithConflictType asserts only Type, while the Validation, NotFound, and Gone tests assert Type, Code, and Message.
-tags: [todo, testing, error]
+tags: [testing, error]
 created: 2026-07-28
 priority: low
 effort: low
