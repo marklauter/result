@@ -5,8 +5,32 @@ summary: Success.BindAsync returns fn(Value) from a non-async method, so a pre-a
 tags: [correctness, async, api-contract]
 created: 2026-07-28
 priority: medium
-status: open
+status: closed
 ---
+
+## Resolution
+
+Closed 2026-07-29 with the third option: document the split and pin it. The
+passthrough stays because it is the property the `Result<T>.BindAsync` doc
+advertises (a continuation that completes synchronously allocates nothing), and
+both uniform-delivery options either lose that or tax every call with a
+try/catch. What this note rejected was the difference existing unrecorded, not
+the difference itself.
+
+The `Result<T>.BindAsync` doc in `src/Results/Result.cs` now states that on a
+success the continuation runs synchronously on the caller's stack until its
+first suspension point, so a pre-suspension throw surfaces at the call site
+rather than through the returned value task, and that a failure never invokes
+the continuation. `src/Results/ResultAsync.cs` carries the contrast on the
+class summary and both `BindAsync` overloads: continuations there run inside an
+async core, so the same throw is delivered through the returned value task.
+
+`tests/Results.Tests/ResultAsyncTests.cs` pins all three behaviors — the
+synchronous throw from a success passthrough, the failure that returns its
+errors without invoking a throwing continuation, and the task-delivered throw
+from the async-continuation extension. The tests pin documented behavior, not a
+fix; they were green when written, as this note's documentation-only branch
+prescribes.
 
 ## Start by pinning the failure
 

@@ -12,7 +12,7 @@ public sealed class ApplyUnitTests
     [Fact]
     public void TwoInputs_LeftFailure_RightSuccess_PropagatesLeftErrors()
     {
-        var error = Error.Validation("err.left", "left bad");
+        var error = Error.Validation(ErrorCode.Unchecked("err.left"), ErrorMessage.Unchecked("left bad"));
         var left = Result.Failure<Unit>(error);
         var right = Result.Success(Unit.Value);
 
@@ -26,7 +26,7 @@ public sealed class ApplyUnitTests
     [Fact]
     public void TwoInputs_LeftSuccess_RightFailure_PropagatesRightErrors()
     {
-        var error = Error.Validation("err.right", "right bad");
+        var error = Error.Validation(ErrorCode.Unchecked("err.right"), ErrorMessage.Unchecked("right bad"));
         var left = Result.Success(Unit.Value);
         var right = Result.Failure<Unit>(error);
 
@@ -40,7 +40,7 @@ public sealed class ApplyUnitTests
     [Fact]
     public void SingleFailure_ReturnsFailingInputUnchanged()
     {
-        var failure = Result.Failure<Unit>(Error.Validation("err.only", "only failure"));
+        var failure = Result.Failure<Unit>(Error.Validation(ErrorCode.Unchecked("err.only"), ErrorMessage.Unchecked("only failure")));
 
         var result = Result.Apply(Result.Success(Unit.Value), failure, Result.Success(Unit.Value));
 
@@ -50,8 +50,8 @@ public sealed class ApplyUnitTests
     [Fact]
     public void TwoInputs_BothFailure_AccumulatesInOrder()
     {
-        var leftError = Error.Validation("err.left", "left bad");
-        var rightError = Error.Validation("err.right", "right bad");
+        var leftError = Error.Validation(ErrorCode.Unchecked("err.left"), ErrorMessage.Unchecked("left bad"));
+        var rightError = Error.Validation(ErrorCode.Unchecked("err.right"), ErrorMessage.Unchecked("right bad"));
         var left = Result.Failure<Unit>(leftError);
         var right = Result.Failure<Unit>(rightError);
 
@@ -83,7 +83,7 @@ public sealed class ApplyUnitTests
     [Fact]
     public void Variadic_Mixed_PropagatesOnlyFailureErrors()
     {
-        var error = Error.Validation("err.mid", "middle bad");
+        var error = Error.Validation(ErrorCode.Unchecked("err.mid"), ErrorMessage.Unchecked("middle bad"));
         var result = Result.Apply(
             Result.Success(Unit.Value),
             Result.Failure<Unit>(error),
@@ -97,9 +97,9 @@ public sealed class ApplyUnitTests
     [Fact]
     public void Variadic_ThreeFailures_AccumulatesAllInInputOrder()
     {
-        var e1 = Error.Validation("err.1", "first");
-        var e2 = Error.Validation("err.2", "second");
-        var e3 = Error.Validation("err.3", "third");
+        var e1 = Error.Validation(ErrorCode.Unchecked("err.1"), ErrorMessage.Unchecked("first"));
+        var e2 = Error.Validation(ErrorCode.Unchecked("err.2"), ErrorMessage.Unchecked("second"));
+        var e3 = Error.Validation(ErrorCode.Unchecked("err.3"), ErrorMessage.Unchecked("third"));
         var result = Result.Apply(
             Result.Failure<Unit>(e1),
             Result.Failure<Unit>(e2),
@@ -153,7 +153,7 @@ public sealed class ApplyUnitTests
     [Fact]
     public void Variadic_NullElement_AmongFailures_StillThrows()
     {
-        var results = new Result<Unit>[] { Result.Failure<Unit>(Error.Validation("err.x", "boom")), null! };
+        var results = new Result<Unit>[] { Result.Failure<Unit>(Error.Validation(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("boom"))), null! };
 
         var ex = Assert.Throws<ArgumentException>(() => Result.Apply(results));
         Assert.Contains("index 1", ex.Message, StringComparison.Ordinal);

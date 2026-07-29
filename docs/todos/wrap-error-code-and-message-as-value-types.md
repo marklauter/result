@@ -5,8 +5,40 @@ summary: Code and Message are bare interchangeable strings, so every factory cal
 tags: [domain-modeling, primitive-obsession, api-contract, pre-1.0]
 created: 2026-07-28
 priority: medium
-status: open
+status: closed
 ---
+
+## Resolution
+
+Closed 2026-07-29. `Error.Code` and `Error.Message` are now typed `ErrorCode` and
+`ErrorMessage`, two public `readonly record struct` wrappers with `Checked` as
+the fallible lift returning `Result<TSelf>` (renamed from `Parse` on Mark's
+direction, contrasting `Unchecked`), `Unchecked` as the total embedding, a
+`Value` projection, ordinal comparison via `IComparable<TSelf>` and
+`IComparisonOperators<TSelf, TSelf, bool>`, and `ToString` returning `Value` so
+`Error`'s rendered form is unchanged. No `IValue<TSelf, TValue>` interface is
+reachable from a referenced package, so the members are implemented directly.
+
+The overload question closed on the strict branch: the `(string, string)`
+overloads were removed entirely, so the factories take only
+`(ErrorCode, ErrorMessage)` and no `string` crosses `Error`'s surface. `Checked`
+rejects only null, empty, and whitespace for both types; dotted-slug shape rules
+can tighten later without changing the signature. The uninitialized-instance
+throw survives on a new mechanism — `field ?? throw` cannot work on struct-typed
+properties, so `Code` and `Message` guard on `Type == ErrorType.Undefined`,
+which [validate-error-in-failure-factories.md](validate-error-in-failure-factories.md)
+established as exactly the `default(Error)` detector. The factories do not
+re-validate their typed arguments: a wrapper that exists is trusted, so passing
+`default(ErrorCode)` is the caller's defect, the same contract `Unchecked`
+misuse carries. `Checked` sits at domain edges (ports/adapters), where
+representable-invalid data crosses in; interior code and literal call sites
+vouch via `Unchecked`.
+
+The metadata test landed in both forms: an assembly-wide rule in
+`tests/Results.Tests/Architecture/ArchitectureTests.cs` forbidding public
+instance `string` properties outside a wrapper's `Value` projection, plus the
+two named property-type asserts from this note. The wrapper contracts are
+covered in `tests/Results.Tests/ErrorCodeTests.cs` and `ErrorMessageTests.cs`.
 
 ## Start by pinning the failure
 

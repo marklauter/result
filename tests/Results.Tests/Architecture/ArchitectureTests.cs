@@ -86,6 +86,46 @@ public sealed class ArchitectureTests : global::Architecture.Testing.Architectur
             $"{m.DeclaringType?.Name}.{m.Name} takes a delegate through a virtual entry point; guard it on a non-virtual wrapper delegating to a private protected core"));
     }
 
+    /// <summary>
+    /// No public instance property on an exported type is typed <see cref="string"/>, except the
+    /// <c>Value</c> projection a readonly value-type wrapper declares. A bare string property is a
+    /// primitive carrying domain meaning the type system no longer records — two of them are
+    /// assignment-compatible, so callers can transpose them and still compile. Wrap the primitive
+    /// in a <c>readonly record struct</c> and expose it as <c>Value</c>.
+    /// </summary>
+    [Fact]
+    public void PublicStringPropertiesAreValueWrapperProjectionsOnly()
+    {
+        var properties = TargetAssembly.GetExportedTypes()
+            .SelectMany(static t => t.GetProperties(
+                BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            .Where(static p => p.PropertyType == typeof(string))
+            .ToList();
+
+        Assert.NotEmpty(properties);
+        Assert.All(properties, static p => Assert.True(
+            p.Name == "Value" && IsReadOnlyValueType(p.DeclaringType),
+            $"{p.DeclaringType?.Name}.{p.Name} exposes a bare string; wrap the primitive in a readonly record struct and project it through Value"));
+    }
+
+    /// <summary>
+    /// The two properties that motivated the rule above, pinned by name: <c>Error.Code</c> and
+    /// <c>Error.Message</c> carry their own wrapper types, so transposed factory arguments are a
+    /// compile error rather than a silently swapped pair of strings.
+    /// </summary>
+    [Fact]
+    public void ErrorCodeAndMessageAreTypedWrappers()
+    {
+        Assert.Equal(typeof(ErrorCode), typeof(Error).GetProperty(nameof(Error.Code))!.PropertyType);
+        Assert.Equal(typeof(ErrorMessage), typeof(Error).GetProperty(nameof(Error.Message))!.PropertyType);
+    }
+
+    private static bool IsReadOnlyValueType(Type? type) =>
+        type is { IsValueType: true }
+        && type.GetCustomAttributesData().Any(static a =>
+            a.AttributeType.Namespace == "System.Runtime.CompilerServices"
+            && a.AttributeType.Name == "IsReadOnlyAttribute");
+
     private static bool HasNotNullConstraint(Type typeParameter)
     {
         if (NullableFlag(typeParameter.GetCustomAttributesData(), "NullableAttribute") is { } direct)

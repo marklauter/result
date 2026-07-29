@@ -106,9 +106,9 @@ Lift each check with `Validate`, then combine:
 
 ```csharp
 Result<Unit> valid = Result.Apply(
-    Result.Validate(name.Length > 0, Error.Validation("name.empty", "Name is required.")),
-    Result.Validate(age >= 18, Error.Validation("age.minor", "Must be 18 or older.")),
-    Result.Validate(email.Contains('@'), Error.Validation("email.malformed", "Email is malformed.")));
+    Result.Validate(name.Length > 0, Error.Validation(ErrorCode.Unchecked("name.empty"), ErrorMessage.Unchecked("Name is required."))),
+    Result.Validate(age >= 18, Error.Validation(ErrorCode.Unchecked("age.minor"), ErrorMessage.Unchecked("Must be 18 or older."))),
+    Result.Validate(email.Contains('@'), Error.Validation(ErrorCode.Unchecked("email.malformed"), ErrorMessage.Unchecked("Email is malformed."))));
 ```
 
 All three violations come back together, in input order.
@@ -134,14 +134,13 @@ Result<Address> address = Result.Apply(
 `Error` is a readonly record struct carrying a typed category (`Type`), a stable machine-readable code, and a human-readable message. The category is what your caller branches on — map it to a status code at the boundary and leave the core transport-agnostic.
 
 ```csharp
-Error.Validation("order.qty_invalid", "Quantity must be positive.");
-Error.NotFound("order.missing", $"No order with id {id}.");
-Error.Gone("order.purged", "The order was purged after 7 years.");
-Error.Conflict("order.already_shipped", "The order has already shipped.");
-Error.Undefined("order.unknown", "Unclassified order failure.");
+Error.Validation(ErrorCode.Unchecked("order.qty_invalid"), ErrorMessage.Unchecked("Quantity must be positive."));
+Error.NotFound(ErrorCode.Unchecked("order.missing"), ErrorMessage.Unchecked($"No order with id {id}."));
+Error.Gone(ErrorCode.Unchecked("order.purged"), ErrorMessage.Unchecked("The order was purged after 7 years."));
+Error.Conflict(ErrorCode.Unchecked("order.already_shipped"), ErrorMessage.Unchecked("The order has already shipped."));
 ```
 
-Construction goes through the factories, which reject a null, empty, or whitespace code or message. A `default(Error)` is a bug rather than a valid value, so reading its `Code` or `Message` throws `InvalidOperationException` instead of handing you a null through a non-nullable declaration.
+The factories take only the typed wrappers, so a code and a message can never be transposed at a call site. Lifting a string is the caller's act: `Checked` is the fallible lift, returning `Result<ErrorCode>`/`Result<ErrorMessage>` and rejecting null, empty, and whitespace; `Unchecked` is the total embedding for values you vouch for, such as the literals above. A `default(Error)` is a bug rather than a valid value, so reading its `Code` or `Message` throws `InvalidOperationException` instead of handing you a null through a non-nullable declaration.
 
 ## API
 

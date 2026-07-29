@@ -25,11 +25,11 @@ public sealed class ResultSequenceTests
     [Fact]
     public void Sequence_SingleFailure_ReturnsItsErrors()
     {
-        IEnumerable<Result<int>> results = [Result.Success(1), Result.Failure<int>(Error.Validation("err.x", "boom"))];
+        IEnumerable<Result<int>> results = [Result.Success(1), Result.Failure<int>(Error.Validation(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("boom")))];
 
         var failure = Assert.IsType<Result<ImmutableArray<int>>.Failure>(results.Sequence());
         var error = Assert.Single(failure.Errors);
-        Assert.Equal("err.x", error.Code);
+        Assert.Equal("err.x", error.Code.Value);
     }
 
     [Fact]
@@ -37,13 +37,13 @@ public sealed class ResultSequenceTests
     {
         IEnumerable<Result<int>> results =
         [
-            Result.Failure<int>(Error.Validation("err.1", "first")),
+            Result.Failure<int>(Error.Validation(ErrorCode.Unchecked("err.1"), ErrorMessage.Unchecked("first"))),
             Result.Success(1),
-            Result.Failure<int>(Error.Validation("err.2", "second"), Error.Validation("err.3", "third")),
+            Result.Failure<int>(Error.Validation(ErrorCode.Unchecked("err.2"), ErrorMessage.Unchecked("second")), Error.Validation(ErrorCode.Unchecked("err.3"), ErrorMessage.Unchecked("third"))),
         ];
 
         var failure = Assert.IsType<Result<ImmutableArray<int>>.Failure>(results.Sequence());
-        Assert.Equal(["err.1", "err.2", "err.3"], failure.Errors.Select(error => error.Code));
+        Assert.Equal(["err.1", "err.2", "err.3"], failure.Errors.Select(error => error.Code.Value));
     }
 
     // A null element is a defect in the calling code, not a domain outcome: Failure elements are
@@ -87,7 +87,7 @@ public sealed class ResultSequenceTests
     [Fact]
     public void Sequence_NullElement_AmongFailures_StillThrows()
     {
-        var results = new Result<int>[] { Result.Failure<int>(Error.Validation("err.x", "boom")), null! };
+        var results = new Result<int>[] { Result.Failure<int>(Error.Validation(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("boom"))), null! };
 
         var ex = Assert.Throws<ArgumentException>(() => results.Sequence());
         Assert.Contains("index 1", ex.Message, StringComparison.Ordinal);

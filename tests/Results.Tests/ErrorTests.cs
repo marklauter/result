@@ -5,57 +5,44 @@ public sealed class ErrorTests
     [Fact]
     public void Validation_CreatesErrorWithValidationType()
     {
-        var error = Error.Validation("err.input", "input is invalid");
+        var error = Error.Validation(ErrorCode.Unchecked("err.input"), ErrorMessage.Unchecked("input is invalid"));
         Assert.Equal(ErrorType.Validation, error.Type);
-        Assert.Equal("err.input", error.Code);
-        Assert.Equal("input is invalid", error.Message);
+        Assert.Equal("err.input", error.Code.Value);
+        Assert.Equal("input is invalid", error.Message.Value);
     }
 
     [Fact]
     public void NotFound_CreatesErrorWithNotFoundType()
     {
-        var error = Error.NotFound("err.fact.not_found", "fact not found");
+        var error = Error.NotFound(ErrorCode.Unchecked("err.fact.not_found"), ErrorMessage.Unchecked("fact not found"));
         Assert.Equal(ErrorType.NotFound, error.Type);
-        Assert.Equal("err.fact.not_found", error.Code);
-        Assert.Equal("fact not found", error.Message);
+        Assert.Equal("err.fact.not_found", error.Code.Value);
+        Assert.Equal("fact not found", error.Message.Value);
     }
 
     [Fact]
     public void Gone_CreatesErrorWithGoneType()
     {
-        var error = Error.Gone("err.policy.gone", "policy was deleted");
+        var error = Error.Gone(ErrorCode.Unchecked("err.policy.gone"), ErrorMessage.Unchecked("policy was deleted"));
         Assert.Equal(ErrorType.Gone, error.Type);
-        Assert.Equal("err.policy.gone", error.Code);
-        Assert.Equal("policy was deleted", error.Message);
+        Assert.Equal("err.policy.gone", error.Code.Value);
+        Assert.Equal("policy was deleted", error.Message.Value);
     }
 
     [Fact]
     public void Conflict_CreatesErrorWithConflictType()
     {
-        var error = Error.Conflict("err.version.conflict", "version mismatch");
+        var error = Error.Conflict(ErrorCode.Unchecked("err.version.conflict"), ErrorMessage.Unchecked("version mismatch"));
         Assert.Equal(ErrorType.Conflict, error.Type);
     }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData(" ")]
-    public void Factory_Throws_IfCodeIsNullOrWhitespace(string? code) =>
-        Assert.ThrowsAny<ArgumentException>(() => Error.NotFound(code!, "message"));
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData(" ")]
-    public void Factory_Throws_IfMessageIsNullOrWhitespace(string? message) =>
-        Assert.ThrowsAny<ArgumentException>(() => Error.NotFound("err.x", message!));
 
     [Fact]
     public void Default_IsUndefinedAndThrowsOnCodeAndMessageReads()
     {
         // default(Error) is an uninitialized instance — itself a bug. Type lands in the
-        // treated-as-a-bug bucket; Code/Message fail loudly instead of leaking null through
-        // their non-nullable declarations (null strings interpolate silently otherwise).
+        // treated-as-a-bug bucket; Code/Message fail loudly instead of leaking null-carrying
+        // default wrappers (a null Value interpolates silently otherwise). Undefined is
+        // unconstructible except as default(Error), so the Type guard is the detector.
         var error = default(Error);
         Assert.Equal(ErrorType.Undefined, error.Type);
         _ = Assert.Throws<InvalidOperationException>(() => error.Code);
@@ -69,8 +56,8 @@ public sealed class ErrorTests
     [Fact]
     public void Equals_ReturnsTrue_ForSameTypeAndCodeAndMessage()
     {
-        var a = Error.NotFound("err.x", "msg");
-        var b = Error.NotFound("err.x", "msg");
+        var a = Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg"));
+        var b = Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg"));
         Assert.Equal(a, b);
         Assert.True(a == b);
     }
@@ -78,16 +65,16 @@ public sealed class ErrorTests
     [Fact]
     public void Equals_ReturnsFalse_WhenTypeDiffers()
     {
-        var a = Error.NotFound("err.x", "msg");
-        var b = Error.Gone("err.x", "msg");
+        var a = Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg"));
+        var b = Error.Gone(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg"));
         Assert.NotEqual(a, b);
     }
 
     [Fact]
     public void Equals_ReturnsFalse_WhenCodeDiffers()
     {
-        var a = Error.NotFound("err.x", "msg");
-        var b = Error.NotFound("err.y", "msg");
+        var a = Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg"));
+        var b = Error.NotFound(ErrorCode.Unchecked("err.y"), ErrorMessage.Unchecked("msg"));
         Assert.NotEqual(a, b);
     }
 
@@ -96,16 +83,16 @@ public sealed class ErrorTests
     {
         // Messages interpolate runtime values, so same type+code with different messages are
         // distinct errors. Any future dedup of accumulated errors inherits this semantic.
-        var a = Error.Validation("err.invalid", "'foo' contains invalid characters");
-        var b = Error.Validation("err.invalid", "'bar' contains invalid characters");
+        var a = Error.Validation(ErrorCode.Unchecked("err.invalid"), ErrorMessage.Unchecked("'foo' contains invalid characters"));
+        var b = Error.Validation(ErrorCode.Unchecked("err.invalid"), ErrorMessage.Unchecked("'bar' contains invalid characters"));
         Assert.NotEqual(a, b);
     }
 
     [Fact]
     public void GetHashCode_ReturnsSameValue_ForEqualErrors()
     {
-        var a = Error.NotFound("err.x", "msg");
-        var b = Error.NotFound("err.x", "msg");
+        var a = Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg"));
+        var b = Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("msg"));
         Assert.Equal(a.GetHashCode(), b.GetHashCode());
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace Results;
 
@@ -78,6 +79,27 @@ public abstract record Result<T>
         public bool Equals(Failure? other) =>
             other is not null && Errors.AsSpan().SequenceEqual(other.Errors.AsSpan());
 
+        /// <summary>
+        /// Renders <see cref="Errors"/> element-wise, each via <see cref="Error"/>'s own record formatting. Replaces the synthesized member printing, which
+        /// would format <see cref="ImmutableArray{T}"/> through <c>ValueType.ToString()</c> — the type name, with every code and message absent from the
+        /// log line.
+        /// </summary>
+        /// <param name="builder">The builder receiving the rendered members.</param>
+        /// <returns><see langword="true"/>: <see cref="Errors"/> is never empty, so there is always a member to print.</returns>
+        protected override bool PrintMembers(StringBuilder builder)
+        {
+            _ = builder.Append("Errors = [");
+            for (var i = 0; i < Errors.Length; i++)
+            {
+                if (i > 0)
+                    _ = builder.Append(", ");
+                _ = builder.Append(Errors[i].ToString());
+            }
+
+            _ = builder.Append(']');
+            return true;
+        }
+
         /// <summary>Hash code combining <see cref="Errors"/> element-wise, consistent with <see cref="Equals(Failure)"/>.</summary>
         /// <returns>The combined hash code.</returns>
         public override int GetHashCode()
@@ -142,7 +164,11 @@ public abstract record Result<T>
     /// Async monadic bind, the entry point into a <see cref="ValueTask{TResult}"/> chain from a synchronous result. Chains a result-returning async function
     /// after a successful result and short-circuits on failure. <see cref="ValueTask{TResult}"/> is the async currency of the whole surface, so a continuation
     /// that completes synchronously — a cache hit, a memoized read — allocates nothing; a continuation holding a <see cref="Task{TResult}"/> wraps it with
-    /// <c>new ValueTask&lt;Result&lt;TResult&gt;&gt;(task)</c>. Cancellation is the responsibility of <paramref name="fn"/>: the API threads no
+    /// <c>new ValueTask&lt;Result&lt;TResult&gt;&gt;(task)</c>. The passthrough sets the exception-delivery contract: on a success, <paramref name="fn"/> runs
+    /// synchronously on the caller's stack until its first suspension point, so an exception it throws before suspending surfaces synchronously at the call
+    /// site rather than through the returned value task — the price of the zero-allocation passthrough. The <see cref="ResultAsync"/> extensions differ:
+    /// their continuations run inside an async core, so the same throw is delivered through the returned value task. A failure never invokes
+    /// <paramref name="fn"/>, so neither delivery applies. Cancellation is the responsibility of <paramref name="fn"/>: the API threads no
     /// <see cref="System.Threading.CancellationToken"/>, so a caller needing cancellation passes a lambda that captures the token from its enclosing scope.
     /// </summary>
     /// <returns>A value task for the result of <paramref name="fn"/> applied to the success value, or the original failure unchanged.</returns>

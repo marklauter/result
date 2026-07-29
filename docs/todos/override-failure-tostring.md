@@ -5,8 +5,29 @@ summary: Failure inherits the record-synthesized ToString, which prints Immutabl
 tags: [correctness, diagnostics, logging]
 created: 2026-07-28
 priority: medium
-status: open
+status: closed
 ---
+
+## Resolution
+
+Closed 2026-07-29. `Result<T>.Failure` now overrides `PrintMembers` — the
+record-idiomatic hook, keeping the `Failure { ... }` envelope — to render
+`Errors` element-wise, each error through its own record formatting, replacing
+the synthesized printing that emitted `ImmutableArray`'s type name.
+
+The defensive-formatting alternative this note offered did not apply:
+[validate-error-in-failure-factories.md](validate-error-in-failure-factories.md)
+landed first, so every `Failure` factory rejects `ErrorType.Undefined` and an
+uninitialized `Error` cannot reach the override. `PrintMembers` reads `Code`
+and `Message` without guards.
+
+Tests are in `tests/Results.Tests/ResultTests.cs`
+(`Failure_ToString_SingleError_ContainsCodeAndMessage`,
+`Failure_ToString_ContainsEveryCodeAndMessage`,
+`Failure_StringInterpolation_ContainsEveryCodeAndMessage`). They assert
+containment of each code and message, not the rendered format, per the
+contract-coupling rule below; the interpolation case covers the logging
+scenario that motivated the note.
 
 ## Start by pinning the failure
 

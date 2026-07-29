@@ -12,7 +12,7 @@ namespace Results.Tests;
 public sealed class NullGuardTests
 {
     private static readonly Result<int> Succeeded = Result.Success(1);
-    private static readonly Result<int> Failed = Result.Failure<int>(Error.NotFound("err.x", "not found"));
+    private static readonly Result<int> Failed = Result.Failure<int>(Error.NotFound(ErrorCode.Unchecked("err.x"), ErrorMessage.Unchecked("not found")));
 
     [Fact]
     public void Match_NullOnSuccess_Throws_OnBothInhabitants()

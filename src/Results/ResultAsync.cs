@@ -8,6 +8,8 @@ namespace Results;
 /// <see cref="Result{T}"/>, not a value task over one. These extensions close that gap — <see cref="MapAsync"/>, <see cref="BindAsync{T, TResult}(ValueTask{Result{T}}, Func{T, Result{TResult}})"/>
 /// and its async-continuation overload, and <see cref="MatchAsync"/> — each awaiting the receiver exactly once, which is the one way a
 /// <see cref="ValueTask{TResult}"/> may be consumed. The chain remains a value task throughout, so an adapter that completes synchronously allocates nothing.
+/// Every continuation here runs inside an async core, so an exception it throws is delivered through the returned value task; contrast
+/// <see cref="Result{T}.BindAsync"/>, whose success passthrough lets a pre-suspension throw escape synchronously at the call site.
 /// </summary>
 public static class ResultAsync
 {
@@ -33,6 +35,8 @@ public static class ResultAsync
 
     /// <summary>
     /// Monadic bind over an awaited result with a synchronous continuation. Chains <paramref name="fn"/> after a successful result and short-circuits on failure.
+    /// <paramref name="fn"/> is invoked inside the async core, so an exception it throws is delivered through the returned value task rather than at the call
+    /// site.
     /// </summary>
     /// <returns>A value task for the result of <paramref name="fn"/> applied to the success value, or the original failure unchanged.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="fn"/> is <see langword="null"/>. Thrown synchronously, before the receiver is awaited.</exception>
@@ -51,7 +55,9 @@ public static class ResultAsync
 
     /// <summary>
     /// Monadic bind over an awaited result with an async continuation — the shape that composes one async port call onto the next. Cancellation is the
-    /// responsibility of <paramref name="fn"/>, as it is for <see cref="Result{T}.BindAsync"/>.
+    /// responsibility of <paramref name="fn"/>, as it is for <see cref="Result{T}.BindAsync"/>. Exception delivery is not as it is there: here
+    /// <paramref name="fn"/> is invoked inside the async core, so an exception it throws before its first suspension point is delivered through the returned
+    /// value task, where <see cref="Result{T}.BindAsync"/>'s success passthrough would let it escape synchronously at the call site.
     /// </summary>
     /// <returns>A value task for the result of <paramref name="fn"/> applied to the success value, or the original failure unchanged.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="fn"/> is <see langword="null"/>. Thrown synchronously, before the receiver is awaited.</exception>

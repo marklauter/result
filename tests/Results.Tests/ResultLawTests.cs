@@ -6,8 +6,8 @@ namespace Results.Tests;
 /// </summary>
 public sealed class ResultLawTests
 {
-    private static readonly Error ErrA = Error.Validation("err.a", "a");
-    private static readonly Error ErrB = Error.Validation("err.b", "b");
+    private static readonly Error ErrA = Error.Validation(ErrorCode.Unchecked("err.a"), ErrorMessage.Unchecked("a"));
+    private static readonly Error ErrB = Error.Validation(ErrorCode.Unchecked("err.b"), ErrorMessage.Unchecked("b"));
 
     private static void AssertEquivalent<T>(Result<T> expected, Result<T> actual)
         where T : notnull
