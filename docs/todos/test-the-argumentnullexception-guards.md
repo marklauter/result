@@ -43,7 +43,7 @@ No test in the suite passes `null` to any of them.
 
 ## This is not a defect
 
-Unlike the other items in `docs/todo/` from the same review, the code here is
+Unlike the other items in `docs/todos/` from the same review, the code here is
 **correct**. The guards work. This is a missing-test item, and the one place
 where the "a bug fix starts red" rule does not apply.
 
