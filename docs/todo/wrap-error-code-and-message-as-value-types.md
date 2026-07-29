@@ -4,7 +4,6 @@ summary: Code and Message are bare interchangeable strings, so every factory cal
 tags: [domain-modeling, primitive-obsession, api-contract, pre-1.0]
 created: 2026-07-28
 priority: medium
-effort: high
 status: open
 ---
 
@@ -57,7 +56,7 @@ logs and error responses, free to be reworded. They have different validation
 rules (a code is a dotted slug; a message is a sentence) and different change
 policies, and the type system currently records neither.
 
-## Why effort is high
+## The cost
 
 `Error.Create` is the single validation choke point today, so the parsing moves
 there cleanly. The cost is at the edges:

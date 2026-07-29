@@ -4,7 +4,6 @@ summary: The ResultAsync extensions invoke caller callbacks after ConfigureAwait
 tags: [async, api-contract, decision]
 created: 2026-07-28
 priority: low
-effort: medium
 status: open
 ---
 

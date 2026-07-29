@@ -4,7 +4,6 @@ summary: The test named StoresArrayDirectly asserts value equality, which a copy
 tags: [testing, contract]
 created: 2026-07-28
 priority: low
-effort: low
 status: open
 ---
 

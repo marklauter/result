@@ -4,7 +4,6 @@ summary: The Result.Failure<T> factories check only the count of errors, never t
 tags: [correctness, invariants, error]
 created: 2026-07-28
 priority: high
-effort: low
 status: open
 ---
 

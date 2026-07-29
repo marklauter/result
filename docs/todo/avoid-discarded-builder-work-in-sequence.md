@@ -4,7 +4,6 @@ summary: Sequence allocates both builders on every call and keeps filling the va
 tags: [efficiency, allocation]
 created: 2026-07-28
 priority: low
-effort: low
 status: open
 ---
 

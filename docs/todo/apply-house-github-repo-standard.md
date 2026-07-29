@@ -4,7 +4,6 @@ summary: Catalog of the repo settings, workflows, and Dependabot config that plu
 tags: [github, repo-standard, ci, house-canon]
 created: 2026-07-28
 priority: medium
-effort: low
 status: open
 ---
 

@@ -4,7 +4,6 @@ summary: None of the combinators null-check their delegates, and behavior diverg
 tags: [correctness, null-safety, api-contract]
 created: 2026-07-28
 priority: medium
-effort: low
 status: open
 ---
 

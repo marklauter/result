@@ -4,7 +4,6 @@ summary: Success uses record-synthesized equality, which compares an ImmutableAr
 tags: [correctness, equality, value-semantics]
 created: 2026-07-28
 priority: high
-effort: medium
 status: open
 ---
 

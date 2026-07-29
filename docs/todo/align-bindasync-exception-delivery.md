@@ -4,7 +4,6 @@ summary: Success.BindAsync returns fn(Value) from a non-async method, so a pre-a
 tags: [correctness, async, api-contract]
 created: 2026-07-28
 priority: medium
-effort: medium
 status: open
 ---
 

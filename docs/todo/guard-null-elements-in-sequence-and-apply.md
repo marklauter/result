@@ -4,7 +4,6 @@ summary: Both element loops classify with `is` type patterns and no else, so a n
 tags: [correctness, null-safety, applicative]
 created: 2026-07-28
 priority: high
-effort: low
 status: open
 ---
 

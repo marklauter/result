@@ -4,7 +4,6 @@ summary: Conflict_CreatesErrorWithConflictType asserts only Type, while the Vali
 tags: [testing, error]
 created: 2026-07-28
 priority: low
-effort: low
 status: open
 ---
 

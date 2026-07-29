@@ -4,7 +4,6 @@ summary: Three public entry points document and enforce a null guard that no tes
 tags: [testing, coverage, null-safety]
 created: 2026-07-28
 priority: medium
-effort: low
 status: open
 ---
 

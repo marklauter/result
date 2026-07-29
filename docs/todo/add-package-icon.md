@@ -4,7 +4,6 @@ summary: Both logo files are generated placeholders with PLACEHOLDER on their fa
 tags: [packaging, nuget, branding]
 created: 2026-07-28
 priority: medium
-effort: low
 status: open
 ---
 

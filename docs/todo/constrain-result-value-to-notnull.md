@@ -4,7 +4,6 @@ summary: Result<T> has no where T : notnull, so a null-carrying "success" is rep
 tags: [correctness, nullability, api-contract, pre-1.0]
 created: 2026-07-28
 priority: high
-effort: medium
 status: open
 ---
 

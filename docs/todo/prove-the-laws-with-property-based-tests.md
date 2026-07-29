@@ -4,7 +4,6 @@ summary: ResultLawTests asserts each law at one fixed input, so an implementatio
 tags: [testing, laws, property-based]
 created: 2026-07-28
 priority: medium
-effort: medium
 status: open
 ---
 
@@ -51,7 +50,7 @@ in the file. The tests are worth keeping as examples; they are not the proof the
 class doc claims.
 
 This is the one item from the review where the fix changes the test strategy
-rather than a test, which is why it carries more effort than the other
+rather than a test, which makes it larger than the other
 test-strength todos.
 
 ## Verify

@@ -4,7 +4,6 @@ summary: Failure inherits the record-synthesized ToString, which prints Immutabl
 tags: [correctness, diagnostics, logging]
 created: 2026-07-28
 priority: medium
-effort: low
 status: open
 ---
 

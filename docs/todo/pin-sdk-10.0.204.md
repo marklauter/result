@@ -4,7 +4,6 @@ summary: global.json currently pins 10.0.100 / latestFeature; bump to 10.0.204 a
 tags: [global-json, sdk, house-canon]
 created: 2026-07-28
 priority: medium
-effort: low
 status: open
 ---
 
