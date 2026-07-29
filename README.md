@@ -26,7 +26,7 @@ An operation that can fail in a way your domain cares about — input that doesn
 
 Exceptions still have a job. Keep them for the substrate failing or the code being wrong: a dropped connection, a missing connection string, a null argument from a caller you don't control.
 
-The test is what a correct caller has to do. If every caller must handle the failure to behave correctly, it belongs in the return type. If handling it means the process is already in trouble, throw.
+The test is structural, not a question about what the caller can do with it. Model the operation as a total function and ask whether the outcome is in its codomain — something the operation's own logic produces — or the machinery it assumes failing. A parse rejecting input is in the codomain. A dropped socket is not, which is why `HttpClient` throwing is correct rather than a counterexample.
 
 ## Compose the happy path
 
