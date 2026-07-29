@@ -5,8 +5,40 @@ summary: Both element loops classify with `is` type patterns and no else, so a n
 tags: [correctness, null-safety, applicative]
 created: 2026-07-28
 priority: high
-status: open
+status: closed
 ---
+
+## Resolution
+
+Closed 2026-07-29. Both loops now account for a null element, and the channel is
+a value rather than the `ArgumentException` this note recommended.
+
+`ErrorType.InvalidOperation` was added for a caller defect surfaced as a value,
+with a matching `Error.InvalidOperation` factory. `src/Results/ErrorCodes.cs`
+declares the two codes: `ErrorCodes.SequenceNullInput` and
+`ErrorCodes.ApplyNullInput`. `ResultSequence.Sequence<T>` gained an `else` arm
+that adds an error naming the input index, and the variadic `Result.Apply` counts
+nulls alongside failures and emits the same error in the null's input position.
+
+Both fast paths in `Apply` were widened, `failures == 0` to
+`failures == 0 && nulls == 0` and `failures == 1` to
+`failures == 1 && nulls == 0`. The single-failure shortcut returns the failing
+input unchanged, so without the second condition it would drop the null's error;
+`Variadic_SingleFailureWithNull_ReportsBothErrors` is the test that kills that
+mutant, verified by reverting the guard and confirming it was the only failure.
+
+Fourteen tests cover the contract, seven per method: the null among passing
+inputs and among failing inputs at each of three positions, and an unfilled
+`new Result<T>[3]` slot, which reaches the defect with no `null!` and no
+suppression. Code, `ErrorType`, and the index in the message are asserted
+separately, so a regression in any one of the three fails on its own.
+
+The throw-versus-return argument this note made still holds for a null
+*collection*: `Sequence` keeps its `ArgumentNullException.ThrowIfNull(results)`
+and the binary `Apply` keeps its two guards. The line is the argument versus the
+data inside it. A null collection is an argument the method cannot act on at all;
+a null element is one input among many, and the operation stays total by
+reporting it.
 
 ## Start by pinning the failure
 

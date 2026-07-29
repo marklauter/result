@@ -12,21 +12,29 @@ public static class ResultSequence
     /// <summary>Sequences <paramref name="results"/> into a single result.</summary>
     /// <returns>
     /// A <see cref="Result{T}.Success"/> carrying every value in input order when all inputs succeed, and when <paramref name="results"/> is empty (the identity
-    /// element). Otherwise a <see cref="Result{T}.Failure"/> carrying every error from every failed input, accumulated in input order.
+    /// element). Otherwise a <see cref="Result{T}.Failure"/> carrying every error from every failed input, accumulated in input order. A null element is a
+    /// caller defect surfaced as a value rather than dropped: it contributes an <see cref="ErrorType.InvalidOperation"/> error with code
+    /// <see cref="ErrorCodes.SequenceNullInput"/> whose message names the input index, accumulated in order with the rest, so a defective batch reports
+    /// failure instead of a shortened success.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="results"/> is <see langword="null"/>.</exception>
-    public static Result<ImmutableArray<T>> Sequence<T>(this IEnumerable<Result<T>> results)
+    public static Result<ImmutableArray<T>> Sequence<T>(
+        this IEnumerable<Result<T>> results)
     {
         ArgumentNullException.ThrowIfNull(results);
 
         var values = ImmutableArray.CreateBuilder<T>();
         var errors = ImmutableArray.CreateBuilder<Error>();
+        var index = 0;
         foreach (var result in results)
         {
             if (result is Result<T>.Success success)
                 values.Add(success.Value);
             else if (result is Result<T>.Failure failure)
                 errors.AddRange(failure.Errors);
+            else
+                errors.Add(Error.InvalidOperation(ErrorCodes.SequenceNullInput, $"input at index {index} is null"));
+            index++;
         }
 
         return errors.Count > 0

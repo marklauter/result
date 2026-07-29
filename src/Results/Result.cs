@@ -232,11 +232,14 @@ public static class Result
     /// </summary>
     /// <returns>
     /// A success of <see cref="Unit"/> when every input succeeds or <paramref name="results"/> is empty (the identity element), otherwise a failure whose errors
-    /// are accumulated across all failed inputs in input order.
+    /// are accumulated across all failed inputs in input order. A null element is a caller defect surfaced as a value rather than counted as a passing check:
+    /// it contributes an <see cref="ErrorType.InvalidOperation"/> error with code <see cref="ErrorCodes.ApplyNullInput"/> whose message names the input
+    /// index, accumulated in order with the rest.
     /// </returns>
     public static Result<Unit> Apply(params ReadOnlySpan<Result<Unit>> results)
     {
         var failures = 0;
+        var nulls = 0;
         var total = 0;
         var lastFailure = -1;
         for (var i = 0; i < results.Length; i++)
@@ -247,25 +250,26 @@ public static class Result
                 total += f.Errors.Length;
                 lastFailure = i;
             }
+            else if (results[i] is null)
+            {
+                nulls++;
+                total++;
+            }
         }
 
-        if (failures == 0)
-        {
+        if (failures == 0 && nulls == 0)
             return Success(Unit.Value);
-        }
 
-        if (failures == 1)
-        {
+        if (failures == 1 && nulls == 0)
             return results[lastFailure];
-        }
 
         var builder = ImmutableArray.CreateBuilder<Error>(total);
         for (var i = 0; i < results.Length; i++)
         {
             if (results[i] is Result<Unit>.Failure f)
-            {
                 builder.AddRange(f.Errors);
-            }
+            else if (results[i] is null)
+                builder.Add(Error.InvalidOperation(ErrorCodes.ApplyNullInput, $"input at index {i} is null"));
         }
 
         return new Result<Unit>.Failure(builder.MoveToImmutable());
