@@ -147,6 +147,7 @@ The factories take only the typed wrappers, so a code and a message can never be
 | Member | What it does |
 | --- | --- |
 | `Result.Success(value)` | Wraps a value. Infers `T`. |
+| `Result.Success()` | The `Unit` success for a void-shaped operation. |
 | `Result.Failure<T>(error)` | Wraps one error. `T` is explicit — it can't be inferred. |
 | `Result.Failure<T>(errors)` | Wraps many. Overloads for `ReadOnlySpan`, `ImmutableArray`, and `IReadOnlyList`. |
 | `Result.Validate(condition, error)` | Lifts a bool check to `Result<Unit>`. The entry point for accumulation. |
@@ -156,7 +157,7 @@ The factories take only the typed wrappers, so a code and a message can never be
 | `Bind` / `SelectMany` | Chains a fallible step. Short-circuits. |
 | `BindAsync`, `MapAsync`, `MatchAsync` | Carry a chain through `ValueTask<Result<T>>`. |
 | `Match` | Folds both paths to a value. |
-| `Sequence` | Turns `IEnumerable<Result<T>>` into `Result<ImmutableArray<T>>`. |
+| `Sequence` | Turns a collection of `Result<T>` into `Result<ImmutableArray<T>>`. Overloads for `IEnumerable`, `ReadOnlySpan`, and `ImmutableArray`. |
 
 A `Failure` always carries at least one error: the factories enforce it, and the inhabitant's constructor is internal, so there's no way around them. `Failure` equality is structural over the errors, element-wise and order-sensitive.
 
