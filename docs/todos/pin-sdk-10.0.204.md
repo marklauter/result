@@ -5,18 +5,21 @@ summary: global.json currently pins 10.0.100 / latestFeature; bump to 10.0.204 a
 tags: [global-json, sdk, house-canon]
 created: 2026-07-28
 priority: medium
-status: closed
+status: declined
 ---
 
 ## Resolution
 
-Closed 2026-07-29. `global.json` pins `10.0.204` with `rollForward: disable`.
-`dotnet --version` resolves to exactly `10.0.204` locally, and the gate ran
-green under the pin: format clean, build with zero warnings, 156 tests passing.
-CI picks the pin up through the `setup-dotnet` composite action's
-`global-json-file` input, which downloads the exact version rather than relying
-on what the runner image preships. Plumber still carries its copy of this todo;
-this note's "coordinate with plumber" ask remains open on that side.
+Declined 2026-07-29, reverting a brief application. The pin went in as
+`10.0.204` / `rollForward: disable` (commit 59dee2e) and was backed out the
+same day: with `latestFeature`, the version in `global.json` is a floor, not a
+pin — it rolls up to the newest installed feature band within 10.0 — so the
+template's `10.0.100` is deliberate, meaning "any 10.0 SDK, prefer newest."
+Raising the floor to `10.0.204` while keeping `latestFeature` would fail a
+machine carrying only the 100-band SDK while silently accepting a future
+300-band one, the worst of both settings. `global.json` stays at `10.0.100` /
+`latestFeature`. Plumber carries a copy of this todo and should decline it for
+the same reason.
 
 Carried from plumber, which was scaffolded from the same template and has this
 todo open too.
