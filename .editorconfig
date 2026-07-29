@@ -1,6 +1,19 @@
 # Remove the line below if you want to inherit .editorconfig settings from higher directories
 root = true
 
+# Every file. The C# sections below set end_of_line for .cs only, which left XML
+# project files, JSON, and Markdown taking their line endings from each machine's
+# core.autocrlf. Mirrors .gitattributes so the editor and the repository agree.
+[*]
+end_of_line = lf
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Windows shell scripts must keep CRLF or they break.
+[*.{cmd,bat}]
+end_of_line = crlf
+
 # C# files
 [*.cs]
 

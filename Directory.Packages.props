@@ -7,10 +7,8 @@
 		<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<!-- SourceLink (package scaffold only) -->
-		<PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.301" />
-	</ItemGroup>
+	<!-- No SourceLink package: the SDK has bundled SourceLink since 8.0.100, and Directory.Build.props
+	     already sets PublishRepositoryUrl, EmbedUntrackedSources, and ContinuousIntegrationBuild. -->
 
 	<ItemGroup>
 		<!-- Test + architecture-test stack (VSTest: Microsoft.NET.Test.Sdk + xunit.runner.visualstudio + coverlet) -->
@@ -22,6 +20,8 @@
 		<PackageVersion Include="xunit.v3.assert" Version="3.2.2" />
 		<PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
 		<PackageVersion Include="TngTech.ArchUnitNET" Version="0.13.3" />
+		<!-- Property-based generators for the algebraic law tests. C#-native, so no FSharp.Core in the test tree. -->
+		<PackageVersion Include="CsCheck" Version="4.7.0" />
 	</ItemGroup>
 
 	<ItemGroup>
