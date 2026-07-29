@@ -10,35 +10,39 @@ status: closed
 
 ## Resolution
 
-Closed 2026-07-29. Both loops now account for a null element, and the channel is
-a value rather than the `ArgumentException` this note recommended.
+Closed 2026-07-29 on the `ArgumentException` channel this note recommended.
 
-`ErrorType.InvalidOperation` was added for a caller defect surfaced as a value,
-with a matching `Error.InvalidOperation` factory. `src/Results/ErrorCodes.cs`
-declares the two codes: `ErrorCodes.SequenceNullInput` and
-`ErrorCodes.ApplyNullInput`. `ResultSequence.Sequence<T>` gained an `else` arm
-that adds an error naming the input index, and the variadic `Result.Apply` counts
-nulls alongside failures and emits the same error in the null's input position.
+`ResultSequence.Sequence<T>` gained an `else` arm and the variadic `Result.Apply`
+an `is null` arm; both throw
+`new ArgumentException($"input at index {i} is null", nameof(results))`. The
+message carries the offending index and the parameter name is the collection,
+because the collection is the argument and the index is what locates the defect
+inside it. Both `<exception>` tags are on the methods.
 
-Both fast paths in `Apply` were widened, `failures == 0` to
-`failures == 0 && nulls == 0` and `failures == 1` to
-`failures == 1 && nulls == 0`. The single-failure shortcut returns the failing
-input unchanged, so without the second condition it would drop the null's error;
-`Variadic_SingleFailureWithNull_ReportsBothErrors` is the test that kills that
-mutant, verified by reverting the guard and confirming it was the only failure.
+The value channel was implemented first and reverted. That version added
+`ErrorType.InvalidOperation`, an `Error.InvalidOperation` factory, and an
+`ErrorCodes` class holding `sequence.null_input` and `apply.null_input`, and it
+widened both of `Apply`'s fast paths to `&& nulls == 0` so the single-failure
+shortcut could not return before the null's error was collected. It was reverted
+against the throw-vs-return rule in `csharp:writing-csharp`: a null element is a
+partiality the types were supposed to remove, so it belongs in the exception
+channel rather than modeled as a domain outcome that a caller's error handler has
+to distinguish from real validation failures. `ErrorCodes.cs` was deleted with
+it. `ErrorType.InvalidOperation` and `Error.InvalidOperation` remain in `src`
+with no production caller, covered only by their `ErrorTests` row — keep or drop
+is a separate decision.
 
-Fourteen tests cover the contract, seven per method: the null among passing
-inputs and among failing inputs at each of three positions, and an unfilled
+Eight tests cover the contract, four per method: the null at each of three
+positions asserting the index appears in the message, an unfilled
 `new Result<T>[3]` slot, which reaches the defect with no `null!` and no
-suppression. Code, `ErrorType`, and the index in the message are asserted
-separately, so a regression in any one of the three fails on its own.
+suppression, a null alongside a modeled failure to pin that the throw beats
+accumulation, and a `ParamName` assertion. `Assert.Throws<T>` is exact-match in
+xUnit, so drift to `ArgumentNullException` fails.
 
-The throw-versus-return argument this note made still holds for a null
-*collection*: `Sequence` keeps its `ArgumentNullException.ThrowIfNull(results)`
-and the binary `Apply` keeps its two guards. The line is the argument versus the
-data inside it. A null collection is an argument the method cannot act on at all;
-a null element is one input among many, and the operation stays total by
-reporting it.
+A null *collection* keeps its existing treatment: `Sequence` keeps
+`ArgumentNullException.ThrowIfNull(results)` and the binary `Apply` keeps its two
+guards. Both are the same channel as the element throw now, so the surface is
+consistent — the note's own consistency requirement is met.
 
 ## Start by pinning the failure
 
