@@ -56,9 +56,4 @@ public readonly record struct Error
     /// <returns>A <see cref="ErrorType.Conflict"/> <see cref="Error"/> carrying <paramref name="code"/> and <paramref name="message"/>.</returns>
     /// <exception cref="ArgumentException"><paramref name="code"/> or <paramref name="message"/> is null, empty, or whitespace.</exception>
     public static Error Conflict(string code, string message) => Create(ErrorType.Conflict, code, message);
-
-    /// <summary>Constructs an <see cref="ErrorType.Undefined"/> error with the given <paramref name="code"/> and <paramref name="message"/>.</summary>
-    /// <returns>An <see cref="ErrorType.Undefined"/> <see cref="Error"/> carrying <paramref name="code"/> and <paramref name="message"/>.</returns>
-    /// <exception cref="ArgumentException"><paramref name="code"/> or <paramref name="message"/> is null, empty, or whitespace.</exception>
-    public static Error Undefined(string code, string message) => Create(ErrorType.Undefined, code, message);
 }

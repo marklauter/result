@@ -5,8 +5,34 @@ summary: The Result.Failure<T> factories and Validate check only the count of er
 tags: [correctness, invariants, error]
 created: 2026-07-28
 priority: high
-status: open
+status: closed
 ---
+
+## Resolution
+
+Closed 2026-07-29. Every `Failure<T>` overload and `Validate` now throws
+`ArgumentException` when an error's `Type` is `ErrorType.Undefined` — the
+single-error factory and `Validate` name the parameter, the collection overloads
+name the offending index. The `Validate` guard is eager, firing on both paths as
+this note required.
+
+The note's premise that detection needs an internal `IsInitialized` was wrong,
+and the "Type-based check cannot substitute" paragraph had the doctrine
+backwards. `ErrorType.Undefined` is never emitted deliberately (see the
+`Undefined` doc comment: treated as a bug, not a domain outcome), so a factory
+has no reason to distinguish a zeroed struct from a deliberately built
+`Undefined` error — both are defects, and one type check rejects both. The
+`Error.Undefined` factory was then removed outright: with no legal destination
+for its output, keeping it meant the library handing callers the exact value
+its own guards reject. A deliberate `Undefined` is now unconstructible, which
+makes the type check precisely the `default(Error)` detector. Two `ResultTests`
+fixtures that used `Error.Undefined` casually were retyped to `NotFound`, and
+the factory's own tests went with it.
+
+Tests cover the red set from this note — `default(Error)` alone, a default
+mixed among valid errors in each collection overload asserting the index, and
+`Validate` on both the true and false paths. Gate green: 135 tests, coverage
+100/100/100.
 
 ## Start by pinning the failure
 

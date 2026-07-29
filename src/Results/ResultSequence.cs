@@ -19,6 +19,7 @@ public static class ResultSequence
     /// boundary it crosses with the offending index in the message rather than modeled as a domain outcome.</exception>
     public static Result<ImmutableArray<T>> Sequence<T>(
         this IEnumerable<Result<T>> results)
+        where T : notnull
     {
         ArgumentNullException.ThrowIfNull(results);
 

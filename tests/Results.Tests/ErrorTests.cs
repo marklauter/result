@@ -36,13 +36,6 @@ public sealed class ErrorTests
         Assert.Equal(ErrorType.Conflict, error.Type);
     }
 
-    [Fact]
-    public void Undefined_CreatesErrorWithUndefinedType()
-    {
-        var error = Error.Undefined("err.boom", "something went wrong");
-        Assert.Equal(ErrorType.Undefined, error.Type);
-    }
-
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -71,16 +64,6 @@ public sealed class ErrorTests
         // The record-synthesized PrintMembers reads Code/Message, so ToString inherits the
         // throw — string interpolation and log formatting of a trash Error fail loudly too.
         _ = Assert.Throws<InvalidOperationException>(error.ToString);
-    }
-
-    [Fact]
-    public void Undefined_FactoryInstance_ReadsCodeAndMessageNormally()
-    {
-        // Type == Undefined alone is not the trash discriminator — factory-built
-        // Undefined errors are legitimate and fully readable.
-        var error = Error.Undefined("err.boom", "something went wrong");
-        Assert.Equal("err.boom", error.Code);
-        Assert.Equal("something went wrong", error.Message);
     }
 
     [Fact]

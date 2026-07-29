@@ -5,8 +5,31 @@ summary: Result<T> has no where T : notnull, so a null-carrying "success" is rep
 tags: [correctness, nullability, api-contract, pre-1.0]
 created: 2026-07-28
 priority: high
-status: open
+status: closed
 ---
+
+## Resolution
+
+Closed 2026-07-29. `where T : notnull` is on every entry point the Scope
+section lists: `Result<T>` (the nested inhabitants close over the constrained
+parameter), `Success<T>`, all four `Failure<T>` overloads, the `TResult` of
+`Match`/`Map`/`Bind`/`BindAsync`/`Select`/`SelectMany` and the `TIntermediate`
+of the projecting `SelectMany`, `Apply<T, TResult>`, `Sequence<T>`, and all
+four `ResultAsync` extensions. `Result.Success<string?>(null)` no longer
+compiles.
+
+The regression gate is
+`ArchitectureTests.PublicGenericParametersAreConstrainedNotNull`, generalized as
+this note asked: it sweeps every generic parameter of every exported type and
+public method in the assembly, so the next generic someone adds is covered.
+ArchUnitNET has no predicate for nullability metadata, so the test reads the
+compiler encoding directly — `NullableAttribute(1)` on the parameter, falling
+back through `NullableContextAttribute` compression scopes. It started red
+naming all 35 unconstrained parameters.
+
+Fallout was one line: the private `AssertEquivalent<T>` helper in
+`ResultLawTests` needed the constraint. No test instantiated `Result<T>` with a
+nullable argument. Gate green: 138 tests, coverage 100/100/100.
 
 ## Start by pinning the failure
 

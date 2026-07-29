@@ -14,6 +14,22 @@ public sealed class ResultTests
     }
 
     [Fact]
+    public void Success_Factory_NullSmuggledPastConstraint_Throws()
+    {
+        // The notnull constraint is compile-time only; null! and nullable-oblivious callers get past it.
+        var ex = Assert.Throws<ArgumentNullException>(() => Result.Success<string>(null!));
+        Assert.Equal("value", ex.ParamName);
+    }
+
+    [Fact]
+    public void Success_UnitFactory_ReturnsSuccessHoldingUnitValue()
+    {
+        var result = Result.Success();
+        var s = Assert.IsType<Result<Unit>.Success>(result);
+        Assert.Equal(Unit.Value, s.Value);
+    }
+
+    [Fact]
     public void Failure_Factory_ReturnsFailureVariant()
     {
         var error = Error.NotFound("err.x", "msg");
@@ -92,6 +108,41 @@ public sealed class ResultTests
     [Fact]
     public void Failure_ListFactory_Empty_Throws() =>
         Assert.Throws<ArgumentException>(() => Result.Failure<int>(new List<Error>()));
+
+    [Fact]
+    public void Failure_SingleErrorFactory_UninitializedError_Throws()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => Result.Failure<int>(default(Error)));
+        Assert.Equal("error", ex.ParamName);
+    }
+
+    [Fact]
+    public void Failure_ParamsFactory_UninitializedErrorAmongValid_ThrowsNamingItsIndex()
+    {
+        // A default(Error) mixed in among valid ones — the case a length check cannot catch.
+        var ex = Assert.Throws<ArgumentException>(
+            () => Result.Failure<int>(Error.Validation("err.x", "boom"), default));
+        Assert.Contains("index 1", ex.Message, StringComparison.Ordinal);
+        Assert.Equal("errors", ex.ParamName);
+    }
+
+    [Fact]
+    public void Failure_ImmutableArrayFactory_UninitializedErrorAmongValid_ThrowsNamingItsIndex()
+    {
+        var ex = Assert.Throws<ArgumentException>(
+            () => Result.Failure<int>([Error.Validation("err.x", "boom"), default]));
+        Assert.Contains("index 1", ex.Message, StringComparison.Ordinal);
+        Assert.Equal("errors", ex.ParamName);
+    }
+
+    [Fact]
+    public void Failure_ListFactory_UninitializedErrorAmongValid_ThrowsNamingItsIndex()
+    {
+        var ex = Assert.Throws<ArgumentException>(
+            () => Result.Failure<int>(new List<Error> { Error.Validation("err.x", "boom"), default }));
+        Assert.Contains("index 1", ex.Message, StringComparison.Ordinal);
+        Assert.Equal("errors", ex.ParamName);
+    }
 
     [Fact]
     public void Match_Success_InvokesOnSuccess()
@@ -326,7 +377,7 @@ public sealed class ResultTests
     [Fact]
     public void Apply_WrappedFunctionFailure_PassesFunctionErrorThrough()
     {
-        var error = Error.Undefined("err.fn", "function unavailable");
+        var error = Error.NotFound("err.fn", "function unavailable");
         var doubler = Result.Failure<Func<int, int>>(error);
         var arg = Result.Success(21);
 
@@ -354,7 +405,7 @@ public sealed class ResultTests
     [Fact]
     public void Apply_BothFailures_AccumulatesBothErrors()
     {
-        var fnError = Error.Undefined("err.fn", "function unavailable");
+        var fnError = Error.NotFound("err.fn", "function unavailable");
         var argError = Error.NotFound("err.arg", "arg missing");
         var doubler = Result.Failure<Func<int, int>>(fnError);
         var arg = Result.Failure<int>(argError);
@@ -498,6 +549,22 @@ public sealed class ResultTests
         var f = Assert.IsType<Result<Unit>.Failure>(result);
         var only = Assert.Single(f.Errors);
         Assert.Equal(error, only);
+    }
+
+    [Fact]
+    public void Validate_UninitializedError_ConditionHolds_Throws()
+    {
+        // The guard is eager: a true condition must not let the trash error slide through unread,
+        // or the defect stays data-dependent and waits for the first failing check in production.
+        var ex = Assert.Throws<ArgumentException>(() => Result.Validate(condition: true, default));
+        Assert.Equal("error", ex.ParamName);
+    }
+
+    [Fact]
+    public void Validate_UninitializedError_ConditionFails_Throws()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => Result.Validate(condition: false, default));
+        Assert.Equal("error", ex.ParamName);
     }
 
     [Fact]
