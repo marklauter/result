@@ -7,10 +7,8 @@
 		<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<!-- SourceLink (package scaffold only) -->
-		<PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.301" />
-	</ItemGroup>
+	<!-- No SourceLink package: the SDK has bundled SourceLink since 8.0.100, and Directory.Build.props
+	     already sets PublishRepositoryUrl, EmbedUntrackedSources, and ContinuousIntegrationBuild. -->
 
 	<ItemGroup>
 		<!-- Test + architecture-test stack (VSTest: Microsoft.NET.Test.Sdk + xunit.runner.visualstudio + coverlet) -->
