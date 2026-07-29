@@ -21,7 +21,7 @@ Results targets .NET 10.
 
 An operation that can fail in a way your domain cares about isn't exceptional. It's an outcome. Return it.
 
-`Result<T>` is a closed hierarchy: `Success` and `Failure` are its only inhabitants, and the base constructor is `private protected`, so nothing outside the assembly can join them. The combinators are abstract on the base and implemented on each inhabitant, which makes exhaustiveness a compile-time fact. Add an inhabitant and the code stops compiling, whereas a `switch` expression would only warn.
+`Result<T>` is a closed hierarchy: `Success` and `Failure` are its only inhabitants, and the base constructor is `private protected`, so nothing outside the assembly can join them. Each combinator is abstract on the base and overridden by both inhabitants. A non-virtual public method wraps each one and guards its arguments once, so the contract cannot diverge by inhabitant. Exhaustiveness is then a compile-time fact: add an inhabitant and the code stops compiling, whereas a `switch` expression would only warn.
 
 ## Result or exception?
 
@@ -115,7 +115,7 @@ All three violations come back together, in input order.
 `Sequence` is the collection-shaped counterpart. A batch of parses reports every bad row in one pass:
 
 ```csharp
-Result<ImmutableArray<Sku>> skus = lines.Select(Sku.Parse).Sequence();
+Result<ImmutableArray<Sku>> skus = lines.Select(Sku.Checked).Sequence();
 ```
 
 The two-argument `Apply` feeds a wrapped argument to a wrapped function. Curry the constructor and apply once per argument, so a value built from several independent parses still collects every error:
@@ -124,8 +124,8 @@ The two-argument `Apply` feeds a wrapped argument to a wrapped function. Curry t
 Result<Address> address = Result.Apply(
     Result.Apply(
         Result.Success((Street s) => (City c) => new Address(s, c)),
-        Street.Parse(streetInput)),
-    City.Parse(cityInput));
+        Street.Checked(streetInput)),
+    City.Checked(cityInput));
 ```
 
 ## Errors
@@ -158,7 +158,9 @@ The factories take only the typed wrappers, so a code and a message can never be
 | `Match` | Folds both paths to a value. |
 | `Sequence` | Turns a collection of `Result<T>` into `Result<ImmutableArray<T>>`. Overloads for `IEnumerable`, `ReadOnlySpan`, and `ImmutableArray`. |
 
-A `Failure` always carries at least one error: the factories enforce it, and the inhabitant's constructor is internal, so there's no way around them. `Failure` equality is structural over the errors, element-wise and order-sensitive.
+A `Failure` always carries at least one error: the factories enforce it, and the inhabitant's constructor is internal, so there's no way around them. `Failure` equality is structural over the errors, element-wise and order-sensitive, because the error collection is library-owned.
+
+`Success` equality is the payload's. It delegates to `EqualityComparer<T>.Default`, so two successes are equal exactly when their values are, and a payload that compares by reference keeps comparing by reference here. `Sequence` returns `Result<ImmutableArray<T>>`, and `ImmutableArray<T>` compares its underlying array by reference, so two structurally identical successes are not `==`. Compare those payloads with `SequenceEqual` through `Match`.
 
 ---
 [Repository](https://github.com/marklauter/result) · [NuGet](https://www.nuget.org/packages/MSL.Results/) · [MIT License](https://github.com/marklauter/result/blob/main/LICENSE) · [Report an issue](https://github.com/marklauter/result/issues)
