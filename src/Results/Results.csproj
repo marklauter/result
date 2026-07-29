@@ -5,7 +5,7 @@
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
 		<PackageId>MSL.$(AssemblyName)</PackageId>
-		<Title>Results — a Result type for dotnet with applicative error accumulation</Title>
+		<Title>Results — a Result type for .NET with applicative error accumulation</Title>
 		<Authors>Mark Lauter</Authors>
 		<Description>A closed Result&lt;T&gt; hierarchy for modeling domain failure as a value instead of an exception. Success and Failure are its only inhabitants, so exhaustiveness is a compile-time fact rather than a runtime switch. Map, Bind, and Match compose the happy path; BindAsync carries a chain into ValueTask; Apply and Sequence accumulate every error across independent checks instead of stopping at the first. Errors are typed and carry a machine-readable code alongside a human-readable message.</Description>
 		<Copyright>Copyright (c) 2026 Mark Lauter</Copyright>
@@ -17,12 +17,11 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
-		<PackageIcon>results-logo.small.png</PackageIcon>
+		<PackageIcon>msl.rocket.tx.clean.small.png</PackageIcon>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<!-- The 128x128 variant is the packed icon; images/results-logo.png is the 256x256 the README embeds. -->
-		<None Include="..\..\images\results-logo.small.png">
+		<None Include="..\..\images\msl.rocket.tx.clean.small.png">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>

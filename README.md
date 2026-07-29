@@ -3,7 +3,6 @@
 [![NuGet](https://img.shields.io/nuget/v/MSL.Results?logo=nuget)](https://www.nuget.org/packages/MSL.Results/)
 [![.NET](https://img.shields.io/badge/.NET-10.0-blue)](https://dotnet.microsoft.com/en-us/download/dotnet/10.0/)
 
-![Results](https://raw.githubusercontent.com/marklauter/result/main/images/results-logo.png "Results")
 ![MSL Armory](https://raw.githubusercontent.com/marklauter/result/main/images/msl.armory.small.png "MSL Armory")
 
 # Results
