@@ -105,9 +105,9 @@ Lift each check with `Validate`, then combine:
 
 ```csharp
 Result<Unit> valid = Result.Apply(
-    Result.Validate(name.Length > 0, Error.Validation(ErrorCode.Unchecked("name.empty"), ErrorMessage.Unchecked("Name is required."))),
+    Result.Validate(!string.IsNullOrWhiteSpace(name), Error.Validation(ErrorCode.Unchecked("name.empty"), ErrorMessage.Unchecked("Name is required."))),
     Result.Validate(age >= 18, Error.Validation(ErrorCode.Unchecked("age.minor"), ErrorMessage.Unchecked("Must be 18 or older."))),
-    Result.Validate(email.Contains('@'), Error.Validation(ErrorCode.Unchecked("email.malformed"), ErrorMessage.Unchecked("Email is malformed."))));
+    Result.Validate(email is not null && email.Contains('@'), Error.Validation(ErrorCode.Unchecked("email.malformed"), ErrorMessage.Unchecked("Email is malformed."))));
 ```
 
 All three violations come back together, in input order.
@@ -127,6 +127,29 @@ Result<Address> address = Result.Apply(
         Street.Checked(streetInput)),
     City.Checked(cityInput));
 ```
+
+### Gate, then accumulate
+
+`Validate` takes a bool, and C# evaluates arguments before the call. Every check handed to an `Apply` therefore runs, including the ones an earlier check was meant to make safe. A precondition cannot be a peer of the checks it guards: put a null test beside the pattern tests that assume a non-null input, and the pattern test throws `ArgumentNullException` out of a function whose whole purpose is returning failure as a value.
+
+`Bind` is the gate: it short-circuits, so nothing downstream runs on an input the precondition rejected. `Apply` then accumulates the independent checks that follow. One chain, both combinators, each doing the job it is for. This is the `Sku.Checked` that the batch parse above calls:
+
+```csharp
+public static Result<Sku> Checked(string input) =>
+    Result.Validate(
+        !string.IsNullOrWhiteSpace(input),
+        Error.Validation(ErrorCode.Unchecked("sku.empty"), ErrorMessage.Unchecked("SKU is required.")))
+    .Bind(_ => Result.Apply(
+        Result.Validate(
+            SkuPatterns.Allowed().IsMatch(input),
+            Error.Validation(ErrorCode.Unchecked("sku.disallowed"), ErrorMessage.Unchecked("SKU allows only A-Z, 0-9, and hyphen."))),
+        Result.Validate(
+            !SkuPatterns.BoundaryHyphen().IsMatch(input),
+            Error.Validation(ErrorCode.Unchecked("sku.boundary_hyphen"), ErrorMessage.Unchecked("SKU cannot start or end with a hyphen.")))))
+    .Map(_ => new Sku(input));
+```
+
+The two pattern checks are independent of each other: both need a non-null input and nothing more, which the gate has already established. Binding them would report the disallowed character and hide the boundary hyphen, so the caller fixes one, resubmits, and learns about the other — the round trip `Apply` exists to remove. Accumulation only pays off when the accumulated errors carry distinct codes: two failures sharing one `sku.invalid` leave the caller unable to tell them apart except by the message text.
 
 ## Errors
 
