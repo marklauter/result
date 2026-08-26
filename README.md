@@ -21,7 +21,7 @@ Results targets .NET 10.
 
 An operation that can fail in a way your domain cares about isn't exceptional. It's an outcome. Return it.
 
-`Result<T>` is a closed hierarchy: `Success` and `Failure` are its only inhabitants, and the base constructor is `private protected`, so nothing outside the assembly can join them. Each combinator is abstract on the base and overridden by both inhabitants. A non-virtual public method wraps each one and guards its arguments once, so the contract cannot diverge by inhabitant. Exhaustiveness is then a compile-time fact: add an inhabitant and the code stops compiling, whereas a `switch` expression would only warn.
+`Result<T>` is a closed hierarchy: `Success` and `Failure` are its only inhabitants, and the base constructor is `private protected`, so nothing outside the assembly can join them. Each combinator is abstract on the base and overridden by both inhabitants. A non-virtual public method wraps each one and guards its arguments once, so the contract cannot diverge by inhabitant. Exhaustiveness is then a compile-time fact: add an inhabitant and the code stops compiling, whereas a `switch` expression only warns.
 
 ## Result or exception?
 
