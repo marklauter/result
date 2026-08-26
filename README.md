@@ -107,7 +107,7 @@ Lift each check with `Validate`, then combine:
 Result<Unit> valid = Result.Apply(
     Result.Validate(!string.IsNullOrWhiteSpace(name), Error.Validation(ErrorCode.Unchecked("name.empty"), ErrorMessage.Unchecked("Name is required."))),
     Result.Validate(age >= 18, Error.Validation(ErrorCode.Unchecked("age.minor"), ErrorMessage.Unchecked("Must be 18 or older."))),
-    Result.Validate(email is not null && email.Contains('@'), Error.Validation(ErrorCode.Unchecked("email.malformed"), ErrorMessage.Unchecked("Email is malformed."))));
+    Result.Validate(!string.IsNullOrWhiteSpace(email) && email.Contains('@'), Error.Validation(ErrorCode.Unchecked("email.malformed"), ErrorMessage.Unchecked("Email is malformed."))));
 ```
 
 All three violations come back together, in input order.
@@ -130,9 +130,9 @@ Result<Address> address = Result.Apply(
 
 ### Gate, then accumulate
 
-`Validate` takes a bool, and C# evaluates arguments before the call. Every check handed to an `Apply` therefore runs, including the ones an earlier check was meant to make safe. A precondition cannot be a peer of the checks it guards: put a null test beside the pattern tests that assume a non-null input, and the pattern test throws `ArgumentNullException` out of a function whose whole purpose is returning failure as a value.
+`Validate` takes a bool, and C# evaluates arguments before the call. Every check handed to an `Apply` therefore runs, including the ones an earlier check guards. A precondition belongs upstream of the checks that depend on it. Put a null test beside the pattern tests that assume a non-null input, and the pattern test throws `ArgumentNullException` out of a function whose whole purpose is returning failure as a value.
 
-`Bind` is the gate: it short-circuits, so nothing downstream runs on an input the precondition rejected. `Apply` then accumulates the independent checks that follow. One chain, both combinators, each doing the job it is for. This is the `Sku.Checked` that the batch parse above calls:
+`Bind` is the gate: it short-circuits, so the checks downstream see only inputs the precondition accepted. `Apply` then accumulates the independent checks that follow. This is the `Sku.Checked` that the batch parse above calls:
 
 ```csharp
 public static Result<Sku> Checked(string input) =>
@@ -149,7 +149,7 @@ public static Result<Sku> Checked(string input) =>
     .Map(_ => new Sku(input));
 ```
 
-The two pattern checks are independent of each other: both need a non-null input and nothing more, which the gate has already established. Binding them would report the disallowed character and hide the boundary hyphen, so the caller fixes one, resubmits, and learns about the other — the round trip `Apply` exists to remove. Accumulation only pays off when the accumulated errors carry distinct codes: two failures sharing one `sku.invalid` leave the caller unable to tell them apart except by the message text.
+The two pattern checks are independent of each other: both need a non-null input and nothing more, which the gate has already established. Bind them and the chain reports the disallowed character while hiding the boundary hyphen, so the caller fixes one, resubmits, and learns about the other. Accumulation pays off only when the errors carry distinct codes: two failures sharing one `sku.invalid` leave the caller separating them by message text alone.
 
 ## Errors
 
