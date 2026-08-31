@@ -128,6 +128,16 @@ Result<Address> address = Result.Apply(
     City.Checked(cityInput));
 ```
 
+### Or stop at the first failure
+
+Accumulation means every element's function runs. When the mapping is expensive — a lookup per row, a call per element — you usually want the opposite: stop as soon as one fails and skip the rest. `Traverse` is that half, Haskell's `traverse` at `Either`, whose applicative short-circuits.
+
+```csharp
+Result<ImmutableArray<Order>> orders = ids.Traverse(LoadOrder);
+```
+
+`LoadOrder` is not called for the ids after the first failure, and the returned failure carries that element's errors and no others. `source.Select(fn).Sequence()` is the accumulating spelling of the same traversal: it evaluates every element and reports every error. The two agree exactly when nothing fails, so the choice is only ever about which failure behavior you want — and about the work you skip by not needing the rest.
+
 ## Errors
 
 `Error` is a readonly record struct carrying a typed category (`Type`), a stable machine-readable code, and a human-readable message. The category is what your caller branches on — map it to a status code at the boundary and leave the core transport-agnostic.
@@ -157,6 +167,7 @@ The factories take only the typed wrappers, so a code and a message can never be
 | `BindAsync`, `MapAsync`, `MatchAsync` | Carry a chain through `ValueTask<Result<T>>`. |
 | `Match` | Folds both paths to a value. |
 | `Sequence` | Turns a collection of `Result<T>` into `Result<ImmutableArray<T>>`. Overloads for `IEnumerable`, `ReadOnlySpan`, and `ImmutableArray`. |
+| `Traverse` | Maps a fallible function over a collection into `Result<ImmutableArray<TResult>>`, stopping at the first failure. Same overloads. |
 
 A `Failure` always carries at least one error: the factories enforce it, and the inhabitant's constructor is internal, so there's no way around them. `Failure` equality is structural over the errors, element-wise and order-sensitive, because the error collection is library-owned.
 
